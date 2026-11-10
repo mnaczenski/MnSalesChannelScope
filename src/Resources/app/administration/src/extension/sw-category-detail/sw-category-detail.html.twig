@@ -1,0 +1,29 @@
+{% block sw_category_smart_bar_save_category %}
+    <mt-button
+        v-if="category && mnCategoryReadOnly"
+        v-tooltip.bottom="$t('mn-sales-channel-scope.category.readOnlyTooltip')"
+        class="sw-category-detail__save-action mn-sales-channel-scope-read-only"
+        variant="primary"
+        disabled
+    >
+        {{ $t('global.default.save') }}
+    </mt-button>
+    <template v-else>
+        {% parent %}
+    </template>
+{% endblock %}
+
+{% block sw_category_content_view %}
+    {% block mn_sales_channel_scope_category_read_only %}
+        <mt-banner
+            v-if="mnCategoryReadOnly"
+            class="mn-sales-channel-scope-category-banner"
+            variant="info"
+            :title="$t('mn-sales-channel-scope.category.readOnlyTitle')"
+        >
+            {{ $t('mn-sales-channel-scope.category.readOnlyText') }}
+        </mt-banner>
+    {% endblock %}
+
+    {% parent %}
+{% endblock %}

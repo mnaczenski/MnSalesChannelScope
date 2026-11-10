@@ -2,6 +2,7 @@
 
 namespace Mn\SalesChannelScope\Scope;
 
+use Mn\SalesChannelScope\Category\CategoryTrees;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsAnyFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\Filter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\OrFilter;
@@ -12,10 +13,15 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\OrFilter;
  *
  * Iteration 1: sales channels, orders and their details, customers and their
  * addresses. Iteration 2: products (sold in one of the channels; variants
- * through their parent), their details, product reviews.
+ * through their parent), their details, product reviews, categories (the
+ * trees of the channels, see CategoryTrees), main categories.
  */
 class ScopeRules
 {
+    public function __construct(private readonly ?CategoryTrees $categories = null)
+    {
+    }
+
     /** Entities that belong to an order (column order_id / association "order"). */
     public const ORDER_CHILDREN = [
         'order_line_item',
@@ -51,6 +57,8 @@ class ScopeRules
             $entity === 'product' => $this->product('', $salesChannelIds),
             \in_array($entity, self::PRODUCT_CHILDREN, true) => $this->product('product.', $salesChannelIds),
             $entity === 'product_review' => new EqualsAnyFilter('salesChannelId', $salesChannelIds),
+            $entity === 'main_category' => new EqualsAnyFilter('salesChannelId', $salesChannelIds),
+            $entity === 'category' => $this->categories?->readFilter($salesChannelIds),
             default => null,
         };
     }

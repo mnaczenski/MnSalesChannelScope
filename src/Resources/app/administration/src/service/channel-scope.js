@@ -46,3 +46,19 @@ export function foreignChannelIds(scope, product, parentProduct) {
 
     return ids.filter((id) => !scope.salesChannelIds.includes(id));
 }
+
+/**
+ * Whether a limited user may edit a category: it lies in a tree of their
+ * channels (an own entry category is the category or one of its ancestors)
+ * and in no tree of another channel. Same rule as the server's CategoryTrees.
+ */
+export function canEditCategory(scope, category) {
+    if (!scope?.restricted || !category?.id) {
+        return true;
+    }
+
+    const lineage = [...String(category.path ?? '').split('|').filter(Boolean), category.id];
+    const entries = scope.categoryEntryPoints ?? { own: [], foreign: [] };
+
+    return lineage.some((id) => entries.own.includes(id)) && !lineage.some((id) => entries.foreign.includes(id));
+}

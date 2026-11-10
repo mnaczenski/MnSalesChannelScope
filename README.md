@@ -2,7 +2,7 @@
 
 Limit admin roles to sales channels. A user whose role is limited to the *Austria* storefront sees and changes only the orders and customers of that channel: lists, detail pages, search, the dashboard and the API all behave as if the other channels didn't exist.
 
-> **Status: proof of concept (0.3.0).** Built for Shopware 6.7 to show how far sales-channel permissions go with a plugin and without core changes. Covered so far: orders, customers and products. Not for production use yet; see [Limitations](#limitations).
+> **Status: proof of concept (0.3.0).** Built for Shopware 6.7 to show how far sales-channel permissions go with a plugin and without core changes. Covered so far: orders, customers, products and categories. Not for production use yet; see [Limitations](#limitations).
 
 - [Why](#why)
 - [Quick start](#quick-start)
@@ -80,7 +80,7 @@ The principle: **with a scope, you only see what is connected to your sales chan
 | Products | `product_visibility`, many to many; variants inherit their parent's | sold in one of the user's channels | sold only in the user's channels, otherwise read-only; the user's own channel visibilities can always change | **2** |
 | Product details (prices, media, visibilities, configurator, cross-selling, downloads, search keywords) | through their product | as their product | as their product | **2** |
 | Product reviews | `product_review.salesChannelId` | its channel is the user's | its channel is the user's | **2** |
-| Categories | none; channels point to entry categories, `category.path` holds the tree | in the tree of one of the user's channels; trees outside every channel are hidden | the tree is used only by the user's channels | 2 (next) |
+| Categories | none; channels point to entry categories (navigation, footer, service), `category.path` holds the ancestors | in a tree of one of the user's channels, plus the ancestors of their entry categories; other trees and trees outside every channel are hidden | it belongs to the user's channels only; shared trees and ancestors are read-only | **2** |
 | Shopping Experiences | none; used by categories, products, landing pages and per-channel defaults | used by something the user sees, or created by the user's channels and still unused | used only within the user's channels | 2 (next) |
 
 Customers are the subtle case. A customer registered in channel B who also ordered in channel A is visible to the team of channel A, because they handle that customer's orders in A. But only the team of channel B may change the customer, because the account belongs to channel B.
@@ -136,7 +136,8 @@ The table `mn_acl_role_sales_channel` maps ACL roles to sales channels. `AclRole
 | `customer_address` | the customer rule, prefixed with `customer.` |
 | `product` | `visibilities.salesChannelId IN (…) OR parent.visibilities.salesChannelId IN (…)` (variants usually have no visibilities of their own) |
 | `product_price`, `product_media`, `product_visibility`, `product_configurator_setting`, `product_cross_selling`, `product_download`, `product_search_keyword` | the product rule, prefixed with `product.` |
-| `product_review` | `salesChannelId IN (…)` |
+| `product_review`, `main_category` | `salesChannelId IN (…)` |
+| `category` | `id IN (entry categories and their ancestors) OR path CONTAINS '\|<entry>\|'` for each entry category of the user's channels (`CategoryTrees`) |
 
 Associations need extra care: Shopware loads to-many associations (a customer's addresses, an order's line items) without dispatching a search event of their own. The subscriber therefore walks the criteria's associations and adds the same rules to every to-many association, at any depth. Many-to-one and one-to-one associations are joins and can't take a filter; their own entity is filtered whenever it's searched directly.
 
@@ -153,6 +154,9 @@ Associations need extra care: Shopware loads to-many associations (a customer's 
 - new products without a visibility in one of the user's channels, and new variants of products the user doesn't own;
 - visibilities and main categories of other channels, and visibilities for products the user can't see (hidden products stay hidden);
 - changes to product reviews of other channels.
+
+- changes to categories (and their translations and tags) that also belong to other channels' trees or are only ancestors of the user's entry categories; new categories below such categories, and root categories; deleting or moving a subtree that holds another channel's entry category;
+- assigning products to categories the user can't see; setting a sales channel's entry categories to categories the user may not edit.
 
 Visibilities of the user's own channels may change on every product they see, also on shared ones: adding or removing a product from their own channel is their call.
 
@@ -177,7 +181,8 @@ The dashboard's turnover chart comes from `OrderAmountService`, which queries th
 - `sw-users-permissions-role-detail`: loads the role with its `mnSalesChannels`.
 - `sw-users-permissions-role-view-general`: the sales channel picker and the preset button.
 - `sw-product-detail`: shared products show a "Shared product: read-only" banner and saving is disabled. New products start with the user's own sales channels selected: the default sales channels (*Settings → Products*) that are the user's, or all of the user's channels when none of the defaults is theirs.
-- `GET /api/_action/mn-channel-scope/me` returns `{ restricted, salesChannelIds }` for these screens. It only drives the UI; the server enforces the rules.
+- `sw-category-detail`: shared categories show a "Shared category: read-only" banner and saving is disabled.
+- `GET /api/_action/mn-channel-scope/me` returns `{ restricted, salesChannelIds, categoryEntryPoints: { own, foreign } }` for these screens. It only drives the UI; the server enforces the rules.
 
 ## Permission preset: Order management
 
@@ -202,7 +207,7 @@ Apply it on the role page (**Add preset: Order management**, then save) or with 
 
 Note that `document.deleter` also allows deleting document settings in *Settings → Documents*. The order module only offers deleting documents with it.
 
-A second preset, **Product management** (`products.json`), adds the product roles (viewer, editor, creator, deleter) with everything they pull in: media, Shopping Experience layouts and the Commercial extensions of the product page (bundles, review summaries).
+Two more presets: **Category management** (`categories.json`) adds the category roles with layouts, SEO and product assignments, and **Product management** (`products.json`) adds the product roles (viewer, editor, creator, deleter) with everything they pull in: media, Shopping Experience layouts and the Commercial extensions of the product page (bundles, review summaries).
 
 After a Shopware, Commercial or plugin update, check whether the permissions changed:
 
@@ -216,7 +221,9 @@ and copy `privileges` into `expandedPrivileges`. The script reads every administ
 
 | Gap | Effect | Planned fix |
 |---|---|---|
-| Categories, Shopping Experiences, promotions, landing pages, newsletter recipients, per-channel settings | not limited yet | iteration 2 |
+| Shopping Experiences, promotions, landing pages, newsletter recipients, per-channel settings | not limited yet | iteration 2 |
+| Category tree actions (add, delete, drag and drop in the tree) | not marked read-only; the write guard refuses the change | mark them in the tree |
+| Category child counts | the tree shows an expand arrow for categories whose children are all hidden | count visible children |
 | Product screens other than the detail page (bulk edit, variant generator, list inline edit) | not marked read-only; the write guard refuses the change | mark them in the UI |
 | Product cross-selling assigned products | not checked | check through their cross-selling |
 | Filtering and sorting by customer or product totals | uses Shopware's stored totals across all channels | per-channel totals table |
@@ -279,7 +286,7 @@ After changing the administration sources, run `bin/build-administration.sh` in 
 ## Roadmap
 
 1. **Iteration 1 (done):** orders, order details, customers, sales channels, dashboard, order preset.
-2. **Iteration 2 (in progress):** products and reviews (done), categories (entry-point trees, hidden outside), Shopping Experiences (owned by the creating channels while unused, "duplicate to edit" when shared), promotions, landing pages, newsletter recipients, per-channel settings, more raw SQL endpoints, Import/Export.
+2. **Iteration 2 (in progress):** products and reviews (done), categories (done), Shopping Experiences (owned by the creating channels while unused, "duplicate to edit" when shared), promotions, landing pages, newsletter recipients, per-channel settings, more raw SQL endpoints, Import/Export.
 3. **Iteration 3:** Commercial features and integrations with their own channel scope.
 
 Decided: shared records are read-only; categories outside every channel are hidden; unused layouts belong to the channels of the user who created them. Open: should "ordered in the channel" make a customer visible? Should limited users change channel settings? Should integrations get the same limits?

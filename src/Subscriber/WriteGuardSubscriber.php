@@ -2,6 +2,7 @@
 
 namespace Mn\SalesChannelScope\Subscriber;
 
+use Mn\SalesChannelScope\Category\CategoryTrees;
 use Mn\SalesChannelScope\Entity\AclRoleSalesChannelDefinition;
 use Mn\SalesChannelScope\Exception\ChannelScopeException;
 use Mn\SalesChannelScope\Scope\ChannelScope;
@@ -30,7 +31,13 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  *   visibility in one of their channels, a new variant a parent they own;
  * - product visibilities and main categories: only for their own channels
  *   and products they see, also on shared products;
- * - product reviews: only of their channels.
+ * - product reviews: only of their channels;
+ * - categories: only those that belong to their channels only (shared trees
+ *   and the ancestors of their entry categories are read-only); new categories
+ *   below such a category; no deleting or moving of a subtree that holds
+ *   another channel's entry category; products can only be assigned to
+ *   categories the user sees;
+ * - sales channel entry categories: only categories the user may edit.
  */
 class WriteGuardSubscriber implements EventSubscriberInterface
 {
@@ -47,7 +54,13 @@ class WriteGuardSubscriber implements EventSubscriberInterface
         'product_property',
         'product_tag',
         'product_custom_field_set',
+        'product_translation',
     ];
+
+    /** Category tables whose records belong to one category (column category_id). */
+    public const CATEGORY_WRITE_CHILDREN = ['category_translation', 'category_tag'];
+
+    private const ENTRY_POINT_COLUMNS = ['navigation_category_id', 'footer_category_id', 'service_category_id'];
 
     /** Payload columns of an update that only touches the record (nested writes of its children). */
     private const TOUCH_COLUMNS = ['updated_at', 'updated_by_id'];
@@ -55,6 +68,7 @@ class WriteGuardSubscriber implements EventSubscriberInterface
     public function __construct(
         private readonly ChannelScope $scope,
         private readonly ScopeLookup $lookup,
+        private readonly ?CategoryTrees $categories = null,
     ) {
     }
 
@@ -74,9 +88,17 @@ class WriteGuardSubscriber implements EventSubscriberInterface
         $commands = $event->getCommands();
         [$newOrders, $newCustomers, $newProducts] = $this->inserted($commands);
 
+        $newCategories = [];
+        foreach ($commands as $command) {
+            if ($command instanceof InsertCommand && $command->getEntityName() === 'category' && \is_string($id = $command->getPrimaryKey()['id'] ?? null)) {
+                $newCategories[Uuid::fromBytesToHex($id)] = true;
+            }
+        }
+
         foreach ($commands as $command) {
             $reason = $this->deny($command, $allowed, $newOrders, $newCustomers)
-                ?? $this->denyProduct($command, $allowed, $newProducts);
+                ?? $this->denyProduct($command, $allowed, $newProducts)
+                ?? $this->denyCategory($command, $ids, $newCategories);
             if ($reason !== null) {
                 $event->getExceptions()->add(ChannelScopeException::writeDenied($command->getEntityName(), $reason));
             }
@@ -129,6 +151,60 @@ class WriteGuardSubscriber implements EventSubscriberInterface
     }
 
     /**
+     * @param list<string> $channels
+     * @param array<string, true> $newCategories
+     */
+    private function denyCategory(WriteCommand $command, array $channels, array $newCategories): ?string
+    {
+        if ($this->categories === null) {
+            return null;
+        }
+
+        $entity = $command->getEntityName();
+        $primaryKey = $command->getPrimaryKey();
+        $payload = $command->getPayload();
+        $editable = fn (?string $id): bool => $id !== null && (isset($newCategories[$id]) || $this->categories->isEditable($id, $channels));
+
+        if ($entity === 'category') {
+            $id = $this->hex($primaryKey['id'] ?? null);
+            $parent = \array_key_exists('parent_id', $payload) ? $this->hex($payload['parent_id']) : false;
+            if ($command instanceof InsertCommand) {
+                if ($parent === false || $parent === null) {
+                    return 'only unrestricted users create root categories';
+                }
+
+                return $editable($parent) ? null : 'new categories can only be added below categories that belong only to your sales channels';
+            }
+            if (!$editable($id)) {
+                return 'the category is also used by other sales channels';
+            }
+            if (($command instanceof DeleteCommand || $parent !== false) && $this->categories->hasForeignEntriesBelow((string) $id, $channels)) {
+                return 'another sales channel\'s category tree starts below this category';
+            }
+            if ($parent !== false && !$editable($parent)) {
+                return 'categories can only be moved below categories that belong only to your sales channels';
+            }
+
+            return null;
+        }
+
+        if (\in_array($entity, self::CATEGORY_WRITE_CHILDREN, true)) {
+            $category = $this->hex($payload['category_id'] ?? $primaryKey['category_id'] ?? null);
+
+            return $editable($category) ? null : 'its category is also used by other sales channels';
+        }
+
+        if ($entity === 'product_category' || $entity === 'main_category') {
+            $category = $this->hex($payload['category_id'] ?? $primaryKey['category_id'] ?? null);
+            if ($category !== null && !isset($newCategories[$category]) && !$this->categories->isVisible($category, $channels)) {
+                return 'products can only be assigned to categories of your sales channels';
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @param array<string, int> $allowed
      * @param array<string, ?string> $newOrders
      * @param array<string, array{salesChannelId: string, boundSalesChannelId: ?string}> $newCustomers
@@ -149,7 +225,17 @@ class WriteGuardSubscriber implements EventSubscriberInterface
                 return 'only unrestricted users create or delete sales channels';
             }
 
-            return isset($allowed[$this->hex($primaryKey['id'] ?? null) ?? '']) ? null : 'the sales channel is not one of yours';
+            if (!isset($allowed[$this->hex($primaryKey['id'] ?? null) ?? ''])) {
+                return 'the sales channel is not one of yours';
+            }
+            foreach (self::ENTRY_POINT_COLUMNS as $column) {
+                $category = $this->hex($payload[$column] ?? null);
+                if ($category !== null && $this->categories !== null && !$this->categories->isEditable($category, array_keys($allowed))) {
+                    return 'entry categories must be categories that belong only to your sales channels';
+                }
+            }
+
+            return null;
         }
 
         if ($entity === 'order') {

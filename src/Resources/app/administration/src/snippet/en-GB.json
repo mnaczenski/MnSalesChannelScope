@@ -11,17 +11,24 @@
             "applied": "Preset \"{name}\" added to the permissions. Save the role to keep it.",
             "names": {
                 "orders": "Order management",
-                "products": "Product management"
+                "products": "Product management",
+                "categories": "Category management"
             },
             "help": {
                 "orders": "Adds everything the order module needs, including documents (create, upload, download, send, delete), refunds, discounts and payment states. Existing permissions stay. Note: deleting documents needs the Documents settings permission \"delete\", which also allows deleting document settings.",
-                "products": "Adds everything the product module needs, including media, Shopping Experience layouts, reviews and the Commercial extensions on the product page (bundles, review summaries). Existing permissions stay."
+                "products": "Adds everything the product module needs, including media, Shopping Experience layouts, reviews and the Commercial extensions on the product page (bundles, review summaries). Existing permissions stay.",
+                "categories": "Adds everything the category module needs, including layouts, SEO settings and product assignments. Existing permissions stay."
             }
         },
         "product": {
             "readOnlyTitle": "Shared product: read-only",
             "readOnlyText": "This product is also sold in sales channels outside your role. Its data applies to all of them, so only users responsible for every one of these channels can change it.",
             "readOnlyTooltip": "Read-only: the product is also sold in other sales channels"
+        },
+        "category": {
+            "readOnlyTitle": "Shared category: read-only",
+            "readOnlyText": "This category is also used by sales channels outside your role, or it is above the start of your channels' category tree. Changes would affect those channels too, so only users responsible for all of them can change it. You can add and change subcategories that belong only to your channels.",
+            "readOnlyTooltip": "Read-only: the category is also used by other sales channels"
         }
     }
 }

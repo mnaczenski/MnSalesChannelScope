@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0
+
+- Categories: limited users see the category trees of their sales channels (below their entry categories: navigation, footer, service) and the ancestors of those entries; trees no channel of theirs uses, and trees outside every channel, are hidden. Categories that belong only to their channels are editable; shared trees and ancestors are read-only (banner and disabled save on the category page, refused by the write guard). New categories need such a parent; deleting or moving a subtree that holds another channel's entry category is refused. Products can only be assigned to categories the user sees; main categories only of the user's channels.
+- Sales channel entry categories can only be set to categories the user may edit.
+- Fixed: translations of shared products (name, description) could be changed; `product_translation` is now checked like the product.
+- New permission preset *Category management*.
+- `GET /api/_action/mn-channel-scope/me` also returns the entry categories (`categoryEntryPoints.own`, `.foreign`).
+
 ## 0.4.0
 
 - Totals Shopware stores across all sales channels are counted in the limited user's channels when they are loaded: customer order count, order total, last order date and review count; product rating and sales. Same rules as Shopware (completed orders, approved reviews, orders that are not cancelled). Before, a customer who also bought in another channel revealed that turnover. Filtering and sorting by these fields still use the stored totals.

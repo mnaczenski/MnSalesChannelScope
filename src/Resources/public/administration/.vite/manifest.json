@@ -1,8 +1,11 @@
 {
   "main.js": {
-    "file": "assets/mn-sales-channel-scope-AqOq0e8l.js",
+    "file": "assets/mn-sales-channel-scope-BLx9Cnbf.js",
     "name": "mn-sales-channel-scope",
     "src": "main.js",
-    "isEntry": true
+    "isEntry": true,
+    "css": [
+      "assets/mn-sales-channel-scope-zPugLTQz.css"
+    ]
   }
 }

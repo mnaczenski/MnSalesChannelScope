@@ -1,0 +1,14 @@
+{% block sw_category_view_column_info %}
+    {% parent %}
+
+    {% block mn_sales_channel_scope_category_read_only %}
+        <mt-banner
+            v-if="mnCategoryReadOnly"
+            class="mn-sales-channel-scope-banner mn-sales-channel-scope-category-banner"
+            variant="info"
+            :title="$t('mn-sales-channel-scope.category.readOnlyTitle')"
+        >
+            {{ $t('mn-sales-channel-scope.category.readOnlyText') }}
+        </mt-banner>
+    {% endblock %}
+{% endblock %}

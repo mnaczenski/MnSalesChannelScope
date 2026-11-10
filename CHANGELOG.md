@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1
+
+- Shared products and categories now look like they do for a view-only user: every field is disabled (while a shared record is open, Shopware's acl denies its editor, creator and deleter roles), and the save shortcut does nothing.
+- The read-only hints sit in the card column above the tabs, with the same width and spacing as Shopware's own page hints.
+
 ## 0.5.0
 
 - Categories: limited users see the category trees of their sales channels (below their entry categories: navigation, footer, service) and the ancestors of those entries; trees no channel of theirs uses, and trees outside every channel, are hidden. Categories that belong only to their channels are editable; shared trees and ancestors are read-only (banner and disabled save on the category page, refused by the write guard). New categories need such a parent; deleting or moving a subtree that holds another channel's entry category is refused. Products can only be assigned to categories the user sees; main categories only of the user's channels.

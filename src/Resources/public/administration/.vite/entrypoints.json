@@ -2,10 +2,12 @@
   "base": "/bundles/mnsaleschannelscope/administration/",
   "entryPoints": {
     "mn-sales-channel-scope": {
-      "css": [],
+      "css": [
+        "/bundles/mnsaleschannelscope/administration/assets/mn-sales-channel-scope-zPugLTQz.css"
+      ],
       "dynamic": [],
       "js": [
-        "/bundles/mnsaleschannelscope/administration/assets/mn-sales-channel-scope-AqOq0e8l.js"
+        "/bundles/mnsaleschannelscope/administration/assets/mn-sales-channel-scope-BLx9Cnbf.js"
       ],
       "legacy": false,
       "preload": []

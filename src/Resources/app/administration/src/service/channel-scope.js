@@ -62,3 +62,41 @@ export function canEditCategory(scope, category) {
 
     return lineage.some((id) => entries.own.includes(id)) && !lineage.some((id) => entries.foreign.includes(id));
 }
+
+/**
+ * While a shared record is open, Shopware's acl service answers "no" for its
+ * editor, creator and deleter roles. Shopware's fields disable themselves
+ * through acl.can('…editor'), so the record looks exactly like it does for a
+ * user who may only view it.
+ *
+ * (A page can't hand its children its own acl: Shopware builds overridden
+ * components itself and doesn't pass an override's provide() on.)
+ *
+ * isReadOnly is called inside acl.can(), so components re-render when it
+ * changes. Returns the function that removes the guard.
+ */
+const guards = new Set();
+let installed = false;
+
+export function registerReadOnlyGuard(isReadOnly, deniedPrivileges) {
+    const acl = Shopware.Service('acl');
+
+    if (!installed) {
+        const can = acl.can.bind(acl);
+        acl.can = (privilege) => {
+            for (const guard of guards) {
+                if (guard.deniedPrivileges.includes(privilege) && guard.isReadOnly()) {
+                    return false;
+                }
+            }
+
+            return can(privilege);
+        };
+        installed = true;
+    }
+
+    const guard = { isReadOnly, deniedPrivileges };
+    guards.add(guard);
+
+    return () => guards.delete(guard);
+}

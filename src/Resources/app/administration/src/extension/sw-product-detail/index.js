@@ -1,12 +1,14 @@
 import template from './sw-product-detail.html.twig';
-import loadChannelScope, { foreignChannelIds } from '../../service/channel-scope';
+import loadChannelScope, { foreignChannelIds, registerReadOnlyGuard } from '../../service/channel-scope';
 
 const { EntityCollection } = Shopware.Data;
 
 /**
  * Products that are also sold in sales channels outside the user's scope are
- * read-only: a banner explains why and saving is disabled. The write guard
- * refuses such changes anyway.
+ * read-only: a banner explains why, saving is disabled and every field is
+ * disabled (while it is open, Shopware's acl denies the product editor,
+ * creator and deleter roles, see registerReadOnlyGuard). The write guard refuses such changes
+ * anyway.
  *
  * New products of a limited user start with their own sales channels selected
  * (a new product needs a visibility in one of them).
@@ -31,6 +33,15 @@ Shopware.Component.override('sw-product-detail', {
     },
 
     methods: {
+        // Also covers the save shortcut, which doesn't go through the button.
+        onSave() {
+            if (this.mnReadOnly) {
+                return Promise.resolve();
+            }
+
+            return this.$super('onSave');
+        },
+
         /**
          * Shopware pre-selects the channels of "Settings > Products > Default
          * sales channels" for new products. For a limited user only their own
@@ -82,8 +93,14 @@ Shopware.Component.override('sw-product-detail', {
     },
 
     created() {
+        this.mnRemoveReadOnlyGuard = registerReadOnlyGuard(() => this.mnReadOnly, ['product.editor', 'product.creator', 'product.deleter']);
+
         loadChannelScope().then((scope) => {
             this.mnScope = scope;
         });
+    },
+
+    beforeUnmount() {
+        this.mnRemoveReadOnlyGuard?.();
     },
 });

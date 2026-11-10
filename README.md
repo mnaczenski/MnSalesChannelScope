@@ -1,6 +1,6 @@
 # Sales Channel Scope for Shopware 6
 
-Limit admin roles to sales channels. A user whose role is limited to the *de Storefront* sees and changes only the orders and customers of that channel: lists, detail pages, search, the dashboard and the API all behave as if the other channels didn't exist.
+Limit admin roles to sales channels. A user whose role is limited to the *Austria* storefront sees and changes only the orders and customers of that channel: lists, detail pages, search, the dashboard and the API all behave as if the other channels didn't exist.
 
 > **Status: proof of concept (0.2.0).** Built for Shopware 6.7 to show how far sales-channel permissions go with a plugin and without core changes. Iteration 1 covers orders and customers. Not for production use yet; see [Limitations](#limitations).
 
@@ -44,7 +44,7 @@ Log in as that user: the order list, customer list, sales channel menu and dashb
 The same from the CLI:
 
 ```bash
-bin/console mn:channel-scope:preset orders "Records team"
+bin/console mn:channel-scope:preset orders "Order team Austria"
 ```
 
 The role's sales channels are set on the role page (or through the Admin API, `acl_role.mnSalesChannels`).
@@ -62,7 +62,7 @@ A user is limited when **every** role they have is limited to sales channels. Th
 | User with at least one role without sales channels | no | a role without channels means "all channels", as before the plugin |
 | Integration (API key) | no | not covered in iteration 1 |
 | Storefront, Store API, CLI | no | not an admin user |
-| Work in system scope (indexing, scheduled tasks, flows, internal reads) | no | runs for the shop, not for the user |
+| Work in system scope (indexing, scheduled tasks, flows, internal reads) | no | runs on behalf of Shopware, not of a user |
 
 Nothing changes for existing setups: until a role gets sales channels, the plugin does nothing.
 
@@ -81,7 +81,7 @@ Only orders belong to exactly one sales channel. Everything else is shared or li
 | Categories | none; channels point to entry categories, `category.path` holds the tree | below an entry category of the user's channels | the tree is used only by the user's channels | 2 |
 | Shopping Experiences | none; used by categories, products, landing pages and per-channel defaults | used by something the user sees | used only within the user's channels | 2 |
 
-Customers are the subtle case. A customer registered in the furniture shop who also ordered in the de Storefront is visible to the de team, because they handle that customer's de orders. But only the furniture team may change the customer, because the account belongs to the furniture shop.
+Customers are the subtle case. A customer registered in channel B who also ordered in channel A is visible to the team of channel A, because they handle that customer's orders in A. But only the team of channel B may change the customer, because the account belongs to channel B.
 
 ### Where to enforce it
 
@@ -208,17 +208,17 @@ and copy `privileges` into `expandedPrivileges`.
 
 ## Verified behaviour
 
-Checked on a Shopware 6.7.16 demo shop with two channels (*Storefront*: 5,000 orders; *Rotfuchs Furniture*: 1,510 orders) and one limited role per channel, through the Admin API:
+Checked on Shopware 6.7.16 with two storefront channels and one limited role per channel, through the Admin API:
 
-| Check | Role limited to Storefront | Role limited to Rotfuchs Furniture |
-|---|---|---|
-| Orders in the list | 5,000 | 1,510 |
-| Customers in the list | 200 | 205 (5 registered there, 200 who also ordered there) |
-| Sales channels | Storefront only | Rotfuchs Furniture only |
-| Order of the other channel by id | 404 | 404 |
-| Changing an order of the other channel | refused | refused |
-| Dashboard turnover | own channel only | own channel only |
-| Document types, document settings, mail templates (preset) | readable | readable |
+| Check | Result for each role |
+|---|---|
+| Order list | only the orders of the role's channel |
+| Customer list | customers registered in, bound to or ordered in the role's channel |
+| Sales channels | only the role's channel |
+| Order of the other channel by id | not found (404) |
+| Changing an order of the other channel | refused (`MN_CHANNEL_SCOPE__WRITE_DENIED`) |
+| Dashboard turnover | only the role's channel |
+| Document types, document settings, mail templates (preset) | readable |
 
 Not verified yet: creating, sending and deleting a document end to end, and every screen of the administration as a limited user.
 
@@ -252,7 +252,7 @@ Unit tests run against an existing Shopware installation:
 SHOPWARE_DIR=/path/to/shop php phpunit.phar --testsuite unit
 ```
 
-After changing the administration sources, run `bin/build-administration.sh` in the shop and commit the built files in `src/Resources/public`.
+After changing the administration sources, run `bin/build-administration.sh` in a Shopware installation and commit the built files in `src/Resources/public`.
 
 ## Roadmap
 

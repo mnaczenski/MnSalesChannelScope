@@ -1,0 +1,57 @@
+{
+    "name": "orders",
+    "label": {
+        "en-GB": "Order management",
+        "de-DE": "Bestellverwaltung"
+    },
+    "description": {
+        "en-GB": "Everything the order module needs: view, edit, create and delete orders, refunds, discounts, documents (create, upload, download, send, delete) and payment and delivery states.",
+        "de-DE": "Alles, was das Bestellmodul braucht: Bestellungen ansehen, bearbeiten, anlegen und löschen, Erstattungen, Rabatte, Dokumente (erstellen, hochladen, herunterladen, versenden, löschen) sowie Zahlungs- und Lieferstatus."
+    },
+    "roles": [
+        "order.viewer",
+        "order.editor",
+        "order.creator",
+        "order.deleter",
+        "order_refund.viewer",
+        "order_refund.editor",
+        "order_refund.creator",
+        "order_refund.deleter",
+        "orders.create_discounts",
+        "document.viewer",
+        "document.deleter"
+    ],
+    "additionalPrivileges": {
+        "api_send_email": "send documents and order mails (the order module checks it; Shopware grants it only with mail template editing)",
+        "mail_header_footer:read": "send-mail dialog",
+        "mail_template_media:read": "send-mail dialog",
+        "document:delete": "delete a document on the order (the order module checks document.deleter, which only grants document_base_config:delete)",
+        "document_file:read": "document files (document generation v2)",
+        "document_file:create": "document files (document generation v2)",
+        "document_file:update": "document files (document generation v2)",
+        "document_file:delete": "document files (document generation v2)",
+        "order_transaction:update": "change the payment state (not part of order.editor)",
+        "order_transaction_capture:read": "refunds",
+        "order_transaction_capture_refund_position:read": "refund positions",
+        "order_transaction_capture_refund_position:create": "refund positions",
+        "order_transaction_capture_refund_position:update": "refund positions",
+        "order_transaction_capture_refund_position:delete": "refund positions",
+        "order_line_item_download:read": "downloads of digital products"
+    },
+    "expandedPrivileges": [
+        "api_proxy_switch-customer", "country:read", "country_state:read", "currency:read", "custom_field:read", "custom_field_set:read",
+        "custom_field_set_relation:read", "customer:read", "customer:update", "customer_address:read", "customer_group:read", "document:create",
+        "document:read", "document:update", "document_base_config:delete", "document_base_config:read", "document_base_config_sales_channel:read",
+        "document_type:read", "integration:read", "mail_template:read", "mail_template_type:read", "mail_template_type:update", "media:read",
+        "media_default_folder:read", "number_range:read", "order:create", "order:create:discount", "order:delete", "order:read", "order:update",
+        "order_address:create", "order_address:read", "order_address:update", "order_customer:create", "order_customer:read", "order_customer:update",
+        "order_delivery:create", "order_delivery:read", "order_delivery:update", "order_delivery_position:create", "order_line_item:create",
+        "order_line_item:delete", "order_line_item:read", "order_line_item:update", "order_tag:create", "order_tag:delete", "order_tag:read",
+        "order_tag:update", "order_transaction:create", "order_transaction:read", "order_transaction_capture_refund:create",
+        "order_transaction_capture_refund:delete", "order_transaction_capture_refund:read", "order_transaction_capture_refund:update",
+        "payment_method:read", "product:read", "product_download:read", "product_visibility:read", "property_group:read", "property_group_option:read",
+        "sales_channel:read", "sales_channel_domain:read", "sales_channel_tracking_order:read", "salutation:read", "shipping_method:read",
+        "state_machine:read", "state_machine_history:create", "state_machine_history:read", "state_machine_state:read", "state_machine_transition:read",
+        "tag:create", "tag:read", "user:read", "user_config:create", "user_config:read", "user_config:update", "version:delete"
+    ]
+}

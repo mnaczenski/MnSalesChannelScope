@@ -1,0 +1,20 @@
+{
+    "mn-sales-channel-scope": {
+        "role": {
+            "label": "Sales channels",
+            "placeholder": "All sales channels",
+            "help": "Users with this role only see and change the orders and customers of these sales channels. Leave empty for no limit. A user with several roles gets the channels of all of them; one role without channels removes the limit."
+        },
+        "preset": {
+            "label": "Permission presets",
+            "apply": "Add preset: {name}",
+            "applied": "Preset \"{name}\" added to the permissions. Save the role to keep it.",
+            "names": {
+                "orders": "Order management"
+            },
+            "help": {
+                "orders": "Adds everything the order module needs, including documents (create, upload, download, send, delete), refunds, discounts and payment states. Existing permissions stay. Note: deleting documents needs the Documents settings permission \"delete\", which also allows deleting document settings."
+            }
+        }
+    }
+}

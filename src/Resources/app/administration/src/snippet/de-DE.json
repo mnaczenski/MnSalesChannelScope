@@ -1,0 +1,20 @@
+{
+    "mn-sales-channel-scope": {
+        "role": {
+            "label": "Verkaufskanäle",
+            "placeholder": "Alle Verkaufskanäle",
+            "help": "Benutzer mit dieser Rolle sehen und ändern nur die Bestellungen und Kunden dieser Verkaufskanäle. Leer lassen für keine Einschränkung. Bei mehreren Rollen gelten die Kanäle aller Rollen; eine Rolle ohne Kanäle hebt die Einschränkung auf."
+        },
+        "preset": {
+            "label": "Berechtigungsvorlagen",
+            "apply": "Vorlage hinzufügen: {name}",
+            "applied": "Vorlage \"{name}\" zu den Berechtigungen hinzugefügt. Speichern Sie die Rolle, um sie zu übernehmen.",
+            "names": {
+                "orders": "Bestellverwaltung"
+            },
+            "help": {
+                "orders": "Fügt alles hinzu, was das Bestellmodul braucht, auch Dokumente (erstellen, hochladen, herunterladen, versenden, löschen), Erstattungen, Rabatte und Zahlungsstatus. Bestehende Berechtigungen bleiben. Hinweis: Dokumente löschen erfordert die Berechtigung \"Löschen\" der Dokument-Einstellungen, die auch das Löschen von Dokumentvorlagen erlaubt."
+            }
+        }
+    }
+}

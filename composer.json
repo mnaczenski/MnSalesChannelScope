@@ -1,0 +1,38 @@
+{
+    "name": "mn/sales-channel-scope",
+    "description": "Sales Channel Scope - limit admin roles to the orders and customers of their sales channels (proof of concept)",
+    "type": "shopware-platform-plugin",
+    "version": "0.2.0",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "mn"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "shopware/core": "~6.7.0",
+        "shopware/administration": "~6.7.0"
+    },
+    "extra": {
+        "shopware-plugin-class": "Mn\\SalesChannelScope\\MnSalesChannelScope",
+        "label": {
+            "de-DE": "Verkaufskanal-Berechtigungen",
+            "en-GB": "Sales Channel Scope"
+        },
+        "description": {
+            "de-DE": "Beschränkt Admin-Rollen auf die Bestellungen und Kunden ihrer Verkaufskanäle (Proof of Concept).",
+            "en-GB": "Limits admin roles to the orders and customers of their sales channels (proof of concept)."
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Mn\\SalesChannelScope\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Mn\\SalesChannelScope\\Tests\\": "tests/"
+        }
+    }
+}

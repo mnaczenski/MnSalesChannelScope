@@ -1,0 +1,210 @@
+<?php declare(strict_types=1);
+
+namespace Mn\SalesChannelScope\Tests\Unit\Subscriber;
+
+use Mn\SalesChannelScope\Entity\AclRoleSalesChannelDefinition;
+use Mn\SalesChannelScope\Exception\ChannelScopeException;
+use Mn\SalesChannelScope\Subscriber\WriteGuardSubscriber;
+use Mn\SalesChannelScope\Tests\Ids;
+use Mn\SalesChannelScope\Tests\StaticScopeLookup;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\TestCase;
+use Shopware\Core\Checkout\Customer\Aggregate\CustomerAddress\CustomerAddressDefinition;
+use Shopware\Core\Checkout\Customer\CustomerDefinition;
+use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemDefinition;
+use Shopware\Core\Checkout\Order\OrderDefinition;
+use Shopware\Core\Defaults;
+use Shopware\Core\Framework\Context;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityDefinition;
+use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\DeleteCommand;
+use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\InsertCommand;
+use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\UpdateCommand;
+use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\WriteCommand;
+use Shopware\Core\Framework\DataAbstractionLayer\Write\EntityExistence;
+use Shopware\Core\Framework\DataAbstractionLayer\Write\Validation\PreWriteValidationEvent;
+use Shopware\Core\Framework\DataAbstractionLayer\Write\WriteContext;
+use Shopware\Core\Framework\Uuid\Uuid;
+use Shopware\Core\System\SalesChannel\SalesChannelDefinition;
+use Shopware\Core\Framework\DataAbstractionLayer\Write\EntityWriteGatewayInterface;
+use Shopware\Core\Test\Stub\DataAbstractionLayer\StaticDefinitionInstanceRegistry;
+use Symfony\Component\Validator\Validation;
+
+#[CoversClass(WriteGuardSubscriber::class)]
+class WriteGuardSubscriberTest extends TestCase
+{
+    private const ORDER_DE = '0190dddddddddddddddddddddddddd01';
+    private const ORDER_EN = '0190dddddddddddddddddddddddddd02';
+    private const ITEM_DE = '0190eeeeeeeeeeeeeeeeeeeeeeeeee01';
+    private const ITEM_EN = '0190eeeeeeeeeeeeeeeeeeeeeeeeee02';
+    private const CUSTOMER_DE = '0190ffffffffffffffffffffffffff01';
+    private const CUSTOMER_EN = '0190ffffffffffffffffffffffffff02';
+    private const CUSTOMER_EN_BOUND_DE = '0190ffffffffffffffffffffffffff03';
+    private const ADDRESS_EN = '0190999999999999999999999999ff02';
+
+    public function testOrdersOfTheUsersChannelCanChange(): void
+    {
+        static::assertSame([], $this->denied([$this->update($this->definition(OrderDefinition::class), self::ORDER_DE, ['custom_fields' => '{}'])]));
+    }
+
+    public function testOrdersOfOtherChannelsCanNotChange(): void
+    {
+        static::assertSame(['order'], $this->denied([$this->update($this->definition(OrderDefinition::class), self::ORDER_EN, ['custom_fields' => '{}'])]));
+        static::assertSame(['order'], $this->denied([$this->delete($this->definition(OrderDefinition::class), self::ORDER_EN)]));
+    }
+
+    public function testOrdersCanNotMoveToOtherChannels(): void
+    {
+        $move = $this->update($this->definition(OrderDefinition::class), self::ORDER_DE, ['sales_channel_id' => Uuid::fromHexToBytes(Ids::EN)]);
+
+        static::assertSame(['order'], $this->denied([$move]));
+    }
+
+    public function testOrdersAreOnlyCreatedInTheUsersChannels(): void
+    {
+        $id = Uuid::randomHex();
+        static::assertSame([], $this->denied([$this->insert($this->definition(OrderDefinition::class), $id, ['sales_channel_id' => Uuid::fromHexToBytes(Ids::DE)])]));
+        static::assertSame(['order'], $this->denied([$this->insert($this->definition(OrderDefinition::class), $id, ['sales_channel_id' => Uuid::fromHexToBytes(Ids::EN)])]));
+    }
+
+    public function testOrderDetailsFollowTheirOrder(): void
+    {
+        static::assertSame([], $this->denied([$this->update($this->definition(OrderLineItemDefinition::class), self::ITEM_DE, ['label' => 'x'])]));
+        static::assertSame(['order_line_item'], $this->denied([$this->update($this->definition(OrderLineItemDefinition::class), self::ITEM_EN, ['label' => 'x'])]));
+        static::assertSame(['order_line_item'], $this->denied([
+            $this->insert($this->definition(OrderLineItemDefinition::class), Uuid::randomHex(), ['order_id' => Uuid::fromHexToBytes(self::ORDER_EN)]),
+        ]));
+    }
+
+    public function testDetailsOfAnOrderInsertedInTheSameWriteAreChecked(): void
+    {
+        // e.g. a new order version: the order and its items are inserted together
+        $orderId = Uuid::randomHex();
+        $order = $this->insert($this->definition(OrderDefinition::class), $orderId, ['sales_channel_id' => Uuid::fromHexToBytes(Ids::DE)]);
+        $item = $this->insert($this->definition(OrderLineItemDefinition::class), Uuid::randomHex(), ['order_id' => Uuid::fromHexToBytes($orderId)]);
+
+        static::assertSame([], $this->denied([$order, $item]));
+    }
+
+    public function testCustomersRegisteredOrBoundInTheUsersChannelsCanChange(): void
+    {
+        static::assertSame([], $this->denied([$this->update($this->definition(CustomerDefinition::class), self::CUSTOMER_DE, ['title' => 'x'])]));
+        static::assertSame([], $this->denied([$this->update($this->definition(CustomerDefinition::class), self::CUSTOMER_EN_BOUND_DE, ['title' => 'x'])]));
+        static::assertSame(['customer'], $this->denied([$this->update($this->definition(CustomerDefinition::class), self::CUSTOMER_EN, ['title' => 'x'])]));
+    }
+
+    public function testCustomersCanNotBeRegisteredOrBoundElsewhere(): void
+    {
+        static::assertSame(['customer'], $this->denied([
+            $this->update($this->definition(CustomerDefinition::class), self::CUSTOMER_DE, ['sales_channel_id' => Uuid::fromHexToBytes(Ids::EN)]),
+        ]));
+        static::assertSame(['customer'], $this->denied([
+            $this->update($this->definition(CustomerDefinition::class), self::CUSTOMER_DE, ['bound_sales_channel_id' => Uuid::fromHexToBytes(Ids::EN)]),
+        ]));
+        static::assertSame([], $this->denied([
+            $this->update($this->definition(CustomerDefinition::class), self::CUSTOMER_DE, ['bound_sales_channel_id' => null]),
+        ]));
+    }
+
+    public function testAddressesFollowTheirCustomer(): void
+    {
+        static::assertSame(['customer_address'], $this->denied([$this->update($this->definition(CustomerAddressDefinition::class), self::ADDRESS_EN, ['city' => 'x'])]));
+
+        $customerId = Uuid::randomHex();
+        $customer = $this->insert($this->definition(CustomerDefinition::class), $customerId, ['sales_channel_id' => Uuid::fromHexToBytes(Ids::DE)]);
+        $address = $this->insert($this->definition(CustomerAddressDefinition::class), Uuid::randomHex(), ['customer_id' => Uuid::fromHexToBytes($customerId)]);
+        static::assertSame([], $this->denied([$customer, $address]), 'a new customer with its addresses');
+    }
+
+    public function testSalesChannelsAndRoleChannelsAreProtected(): void
+    {
+        static::assertSame([], $this->denied([$this->update($this->definition(SalesChannelDefinition::class), Ids::DE, ['active' => 1])]));
+        static::assertSame(['sales_channel'], $this->denied([$this->update($this->definition(SalesChannelDefinition::class), Ids::EN, ['active' => 1])]));
+        static::assertSame(['sales_channel'], $this->denied([$this->insert($this->definition(SalesChannelDefinition::class), Uuid::randomHex(), [])]));
+        static::assertSame(['mn_acl_role_sales_channel'], $this->denied([
+            new InsertCommand($this->definition(AclRoleSalesChannelDefinition::class), [], ['acl_role_id' => 'r', 'sales_channel_id' => 's'], $this->existence('mn_acl_role_sales_channel', false), ''),
+        ]));
+    }
+
+    public function testUnrestrictedUsersAreNotChecked(): void
+    {
+        static::assertSame([], $this->denied([$this->delete($this->definition(OrderDefinition::class), self::ORDER_EN)], Ids::context(Ids::FREE_USER)));
+    }
+
+    /**
+     * @param list<WriteCommand> $commands
+     *
+     * @return list<string> entities of the refused commands
+     */
+    private function denied(array $commands, ?Context $context = null): array
+    {
+        $lookup = new StaticScopeLookup(
+            orders: [self::ORDER_DE => Ids::DE, self::ORDER_EN => Ids::EN],
+            children: [self::ITEM_DE => self::ORDER_DE, self::ITEM_EN => self::ORDER_EN],
+            customers: [
+                self::CUSTOMER_DE => ['salesChannelId' => Ids::DE, 'boundSalesChannelId' => null],
+                self::CUSTOMER_EN => ['salesChannelId' => Ids::EN, 'boundSalesChannelId' => null],
+                self::CUSTOMER_EN_BOUND_DE => ['salesChannelId' => Ids::EN, 'boundSalesChannelId' => Ids::DE],
+            ],
+            addresses: [self::ADDRESS_EN => self::CUSTOMER_EN],
+        );
+        $event = new PreWriteValidationEvent(WriteContext::createFromContext($context ?? Ids::context()), $commands);
+        (new WriteGuardSubscriber(Ids::scope(), $lookup))->onPreWrite($event);
+
+        $entities = [];
+        foreach ($event->getExceptions()->getExceptions() as $exception) {
+            static::assertInstanceOf(ChannelScopeException::class, $exception);
+            $entities[] = $exception->getParameters()['entity'];
+        }
+
+        return $entities;
+    }
+
+    /**
+     * @param class-string<EntityDefinition> $class
+     */
+    private function definition(string $class): EntityDefinition
+    {
+        static $registry = null;
+        $registry ??= new StaticDefinitionInstanceRegistry(
+            [OrderDefinition::class, OrderLineItemDefinition::class, CustomerDefinition::class, CustomerAddressDefinition::class, SalesChannelDefinition::class, AclRoleSalesChannelDefinition::class],
+            Validation::createValidator(),
+            $this->createMock(EntityWriteGatewayInterface::class),
+        );
+
+        return $registry->get($class);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function insert(EntityDefinition $definition, string $id, array $payload): InsertCommand
+    {
+        return new InsertCommand($definition, $payload, $this->key($id), $this->existence($definition->getEntityName(), false), '');
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function update(EntityDefinition $definition, string $id, array $payload): UpdateCommand
+    {
+        return new UpdateCommand($definition, $payload, $this->key($id), $this->existence($definition->getEntityName(), true), '');
+    }
+
+    private function delete(EntityDefinition $definition, string $id): DeleteCommand
+    {
+        return new DeleteCommand($definition, $this->key($id), $this->existence($definition->getEntityName(), true));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function key(string $id): array
+    {
+        return ['id' => Uuid::fromHexToBytes($id), 'version_id' => Uuid::fromHexToBytes(Defaults::LIVE_VERSION)];
+    }
+
+    private function existence(string $entity, bool $exists): EntityExistence
+    {
+        return new EntityExistence($entity, [], $exists, false, false, []);
+    }
+}

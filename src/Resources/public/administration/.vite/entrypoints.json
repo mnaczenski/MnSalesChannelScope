@@ -1,0 +1,23 @@
+{
+  "base": "/bundles/mnsaleschannelscope/administration/",
+  "entryPoints": {
+    "mn-sales-channel-scope": {
+      "css": [],
+      "dynamic": [],
+      "js": [
+        "/bundles/mnsaleschannelscope/administration/assets/mn-sales-channel-scope-D7CmSKla.js"
+      ],
+      "legacy": false,
+      "preload": []
+    }
+  },
+  "legacy": false,
+  "metadatas": {},
+  "version": [
+    "7.1.0",
+    7,
+    1,
+    0
+  ],
+  "viteServer": null
+}

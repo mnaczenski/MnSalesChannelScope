@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.0
+
+- Totals Shopware stores across all sales channels are counted in the limited user's channels when they are loaded: customer order count, order total, last order date and review count; product rating and sales. Same rules as Shopware (completed orders, approved reviews, orders that are not cancelled). Before, a customer who also bought in another channel revealed that turnover. Filtering and sorting by these fields still use the stored totals.
+
 ## 0.3.3
 
 - Fixed: pre-selected sales channels of a new product were stored but not shown in the *Sales Channels* field. Shopware adds the default visibilities after the field has rendered, and the field only follows a replaced collection; the plugin now replaces it once the defaults are added. This also affects Shopware's own default sales channels for unrestricted users.

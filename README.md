@@ -164,6 +164,10 @@ A refusal is reported as Shopware's write error (HTTP 400) containing:
 { "code": "MN_CHANNEL_SCOPE__WRITE_DENIED", "detail": "Your role may not change this order: the order belongs to another sales channel" }
 ```
 
+### Totals
+
+Shopware stores some totals across all sales channels: on the customer `orderCount`, `orderTotalAmount`, `lastOrderDate` and `reviewCount`, on the product `ratingAverage` and `sales`. For a limited user, `ChannelTotalsSubscriber` replaces them when customers or products are loaded with the same totals counted in the user's channels only (`DbalChannelTotals`, same rules as Shopware: completed orders, approved reviews, orders that are not cancelled). Filtering and sorting by these fields still use the stored totals.
+
 ### Dashboard
 
 The dashboard's turnover chart comes from `OrderAmountService`, which queries the `order` table with raw SQL and would ignore the read filter. `ScopedOrderAmountService` decorates it and adds `sales_channel_id IN (…)` for limited users; everyone else gets Shopware's own result.
@@ -215,6 +219,7 @@ and copy `privileges` into `expandedPrivileges`. The script reads every administ
 | Categories, Shopping Experiences, promotions, landing pages, newsletter recipients, per-channel settings | not limited yet | iteration 2 |
 | Product screens other than the detail page (bulk edit, variant generator, list inline edit) | not marked read-only; the write guard refuses the change | mark them in the UI |
 | Product cross-selling assigned products | not checked | check through their cross-selling |
+| Filtering and sorting by customer or product totals | uses Shopware's stored totals across all channels | per-channel totals table |
 | Many-to-one joins | a joined record is still shown where another entity references it (for example a review's customer) | filter the root entity; accept the joined label |
 | Other raw SQL endpoints (statistics, reports) | may show figures of all channels | decorate one by one |
 | Admin search hit counts | results are filtered, counts unchecked | check and fix |

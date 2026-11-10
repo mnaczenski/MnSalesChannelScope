@@ -11,8 +11,11 @@ use Mn\SalesChannelScope\Scope\ChannelScope;
 use Mn\SalesChannelScope\Scope\DbalRoleChannelLoader;
 use Mn\SalesChannelScope\Scope\RoleChannelLoader;
 use Mn\SalesChannelScope\Scope\ScopeRules;
+use Mn\SalesChannelScope\Subscriber\ChannelTotalsSubscriber;
 use Mn\SalesChannelScope\Subscriber\ReadFilterSubscriber;
 use Mn\SalesChannelScope\Subscriber\WriteGuardSubscriber;
+use Mn\SalesChannelScope\Totals\ChannelTotals;
+use Mn\SalesChannelScope\Totals\DbalChannelTotals;
 use Mn\SalesChannelScope\Write\DbalScopeLookup;
 use Mn\SalesChannelScope\Write\ScopeLookup;
 use Shopware\Administration\Dashboard\OrderAmountService;
@@ -38,6 +41,12 @@ return static function (ContainerConfigurator $configurator): void {
 
     $services->set(ReadFilterSubscriber::class)
         ->args([service(ChannelScope::class), service(ScopeRules::class)])
+        ->tag('kernel.event_subscriber');
+
+    $services->set(DbalChannelTotals::class)->args([service(Connection::class)]);
+    $services->alias(ChannelTotals::class, DbalChannelTotals::class);
+    $services->set(ChannelTotalsSubscriber::class)
+        ->args([service(ChannelScope::class), service(ChannelTotals::class)])
         ->tag('kernel.event_subscriber');
 
     $services->set(DbalScopeLookup::class)->args([service(Connection::class)]);

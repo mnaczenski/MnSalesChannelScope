@@ -182,6 +182,7 @@ The dashboard's turnover chart comes from `OrderAmountService`, which queries th
 - `sw-users-permissions-role-view-general`: the sales channel picker and the preset button.
 - `sw-product-detail`: shared products show a "Shared product: read-only" hint, and saving and every field are disabled: while a shared product is open, Shopware's `acl` service denies the product editor, creator and deleter roles (`registerReadOnlyGuard`), so Shopware's own fields disable themselves as for a view-only user. New products start with the user's own sales channels selected: the default sales channels (*Settings → Products*) that are the user's, or all of the user's channels when none of the defaults is theirs.
 - `sw-category-detail` and `sw-category-view`: shared categories show a "Shared category: read-only" hint above the tabs, and saving and every field are disabled the same way.
+- `sw-admin-menu`: limited users don't see the *Settings* entry (Shopware shows it to every user; the settings pages keep their own privileges).
 - `GET /api/_action/mn-channel-scope/me` returns `{ restricted, salesChannelIds, categoryEntryPoints: { own, foreign } }` for these screens. It only drives the UI; the server enforces the rules.
 
 ## Permission preset: Order management

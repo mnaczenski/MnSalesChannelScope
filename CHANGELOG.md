@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.2
+
+- Limited users don't see the *Settings* entry in the main menu. Shopware shows it to every user; for a limited user it only led to settings of all sales channels (such as the document settings the order preset grants read access to). The settings pages stay protected by their own privileges.
+
 ## 0.5.1
 
 - Shared products and categories now look like they do for a view-only user: every field is disabled (while a shared record is open, Shopware's acl denies its editor, creator and deleter roles), and the save shortcut does nothing.

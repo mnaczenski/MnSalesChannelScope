@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2
+
+- New products of a limited user start with their own sales channels selected: the default sales channels (*Settings → Products*) among the user's channels, or all of the user's channels when none of the defaults is theirs. Before, such products could only be saved after adding a visibility by hand.
+
 ## 0.3.1
 
 - New permission preset *Product management*.

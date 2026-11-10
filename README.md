@@ -172,7 +172,7 @@ The dashboard's turnover chart comes from `OrderAmountService`, which queries th
 
 - `sw-users-permissions-role-detail`: loads the role with its `mnSalesChannels`.
 - `sw-users-permissions-role-view-general`: the sales channel picker and the preset button.
-- `sw-product-detail`: shared products show a "Shared product: read-only" banner and saving is disabled.
+- `sw-product-detail`: shared products show a "Shared product: read-only" banner and saving is disabled. New products start with the user's own sales channels selected: the default sales channels (*Settings → Products*) that are the user's, or all of the user's channels when none of the defaults is theirs.
 - `GET /api/_action/mn-channel-scope/me` returns `{ restricted, salesChannelIds }` for these screens. It only drives the UI; the server enforces the rules.
 
 ## Permission preset: Order management

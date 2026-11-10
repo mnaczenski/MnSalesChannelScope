@@ -28,7 +28,14 @@
             >
                 {{ $t('mn-sales-channel-scope.preset.apply', { name: $t(`mn-sales-channel-scope.preset.names.${preset.name}`) }) }}
             </mt-button>
-            <p class="mn-sales-channel-scope-presets__help">{{ $t(`mn-sales-channel-scope.preset.help.${mnPresets[0].name}`) }}</p>
+            <p
+                v-for="preset in mnPresets"
+                :key="`help-${preset.name}`"
+                class="mn-sales-channel-scope-presets__help"
+            >
+                <strong>{{ $t(`mn-sales-channel-scope.preset.names.${preset.name}`) }}:</strong>
+                {{ $t(`mn-sales-channel-scope.preset.help.${preset.name}`) }}
+            </p>
         </div>
     {% endblock %}
 {% endblock %}

@@ -194,17 +194,19 @@ The preset `src/Resources/config/presets/orders.json` puts all of it in one plac
 - **`additionalPrivileges`**: the privileges no role grants, each with the reason it's needed.
 - **`expandedPrivileges`**: the entity privileges the roles expand to, as the administration expands them when saving. The CLI command needs them to write a complete role.
 
-Apply it on the role page (**Add preset: Order management**, then save) or with `bin/console mn:channel-scope:preset orders "<role name or id>"`. Both only add permissions; nothing is removed.
+Apply it on the role page (**Add preset: Order management**, then save) or with `bin/console mn:channel-scope:preset orders "<role name or id>"`. Saving on the role page lets the administration expand the roles itself; the command uses `expandedPrivileges`. Both only add permissions; nothing is removed.
 
 Note that `document.deleter` also allows deleting document settings in *Settings → Documents*. The order module only offers deleting documents with it.
 
-After a Shopware update, check whether the order or document permissions changed:
+A second preset, **Product management** (`products.json`), adds the product roles (viewer, editor, creator, deleter) with everything they pull in: media, Shopping Experience layouts and the Commercial extensions of the product page (bundles, review summaries).
+
+After a Shopware, Commercial or plugin update, check whether the permissions changed:
 
 ```bash
 node bin/expand-preset.js src/Resources/config/presets/orders.json /path/to/shop
 ```
 
-and copy `privileges` into `expandedPrivileges`.
+and copy `privileges` into `expandedPrivileges`. The script reads every administration ACL file of the core administration, Shopware Commercial and the plugins, merges entries that extend the same role and resolves `getPrivileges()` references, so the result matches what the administration stores when a role is saved there.
 
 ## Limitations
 

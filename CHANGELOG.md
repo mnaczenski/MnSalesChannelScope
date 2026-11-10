@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1
+
+- New permission preset *Product management*.
+- `bin/expand-preset.js` now expands roles the way the administration does: it reads the ACL files of the core administration, Shopware Commercial and plugins, merges entries that extend the same role and resolves `getPrivileges()` references. The stored privileges of the presets were incomplete before: the product roles' media and Shopping Experience permissions and Commercial's additions were missing, and the order preset lacked `b2b_order_employee:*` from B2B.
+
 ## 0.3.0
 
 - Products (iteration 2): limited users see only products sold in their sales channels (variants through their parent) and their prices, media, visibilities, configurator settings, cross-sellings, downloads and search keywords, and only product reviews of their channels.

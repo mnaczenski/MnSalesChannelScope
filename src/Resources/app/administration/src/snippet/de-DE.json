@@ -10,10 +10,12 @@
             "apply": "Vorlage hinzufügen: {name}",
             "applied": "Vorlage \"{name}\" zu den Berechtigungen hinzugefügt. Speichern Sie die Rolle, um sie zu übernehmen.",
             "names": {
-                "orders": "Bestellverwaltung"
+                "orders": "Bestellverwaltung",
+                "products": "Produktverwaltung"
             },
             "help": {
-                "orders": "Fügt alles hinzu, was das Bestellmodul braucht, auch Dokumente (erstellen, hochladen, herunterladen, versenden, löschen), Erstattungen, Rabatte und Zahlungsstatus. Bestehende Berechtigungen bleiben. Hinweis: Dokumente löschen erfordert die Berechtigung \"Löschen\" der Dokument-Einstellungen, die auch das Löschen von Dokumentvorlagen erlaubt."
+                "orders": "Fügt alles hinzu, was das Bestellmodul braucht, auch Dokumente (erstellen, hochladen, herunterladen, versenden, löschen), Erstattungen, Rabatte und Zahlungsstatus. Bestehende Berechtigungen bleiben. Hinweis: Dokumente löschen erfordert die Berechtigung \"Löschen\" der Dokument-Einstellungen, die auch das Löschen von Dokumentvorlagen erlaubt.",
+                "products": "Fügt alles hinzu, was das Produktmodul braucht, auch Medien, Erlebniswelten-Layouts, Bewertungen und die Commercial-Erweiterungen der Produktseite (Bundles, Bewertungszusammenfassungen). Bestehende Berechtigungen bleiben."
             }
         },
         "product": {

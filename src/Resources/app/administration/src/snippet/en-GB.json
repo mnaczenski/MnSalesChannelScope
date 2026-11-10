@@ -10,10 +10,12 @@
             "apply": "Add preset: {name}",
             "applied": "Preset \"{name}\" added to the permissions. Save the role to keep it.",
             "names": {
-                "orders": "Order management"
+                "orders": "Order management",
+                "products": "Product management"
             },
             "help": {
-                "orders": "Adds everything the order module needs, including documents (create, upload, download, send, delete), refunds, discounts and payment states. Existing permissions stay. Note: deleting documents needs the Documents settings permission \"delete\", which also allows deleting document settings."
+                "orders": "Adds everything the order module needs, including documents (create, upload, download, send, delete), refunds, discounts and payment states. Existing permissions stay. Note: deleting documents needs the Documents settings permission \"delete\", which also allows deleting document settings.",
+                "products": "Adds everything the product module needs, including media, Shopping Experience layouts, reviews and the Commercial extensions on the product page (bundles, review summaries). Existing permissions stay."
             }
         },
         "product": {

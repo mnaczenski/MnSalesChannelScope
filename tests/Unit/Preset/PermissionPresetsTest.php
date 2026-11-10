@@ -32,6 +32,20 @@ class PermissionPresetsTest extends TestCase
         static::assertSame($privileges, array_values(array_unique($privileges)));
     }
 
+    public function testTheProductPresetCoversThePermissionsThePagePullsIn(): void
+    {
+        $privileges = $this->presets->privileges('products');
+
+        // core product roles reference the media and Shopping Experience viewers through getPrivileges()
+        foreach (['product.viewer', 'product.editor', 'product:update', 'media_folder:read', 'cms_page:read'] as $privilege) {
+            static::assertContains($privilege, $privileges);
+        }
+        // Commercial extends the product roles (review summaries, bundles)
+        foreach (['product_review_summary:read', 'product_review_summary_translation:read', 'bundle_item:read'] as $privilege) {
+            static::assertContains($privilege, $privileges);
+        }
+    }
+
     public function testEveryAdditionalPrivilegeSaysWhyItIsNeeded(): void
     {
         foreach ($this->presets->load('orders')['additionalPrivileges'] as $privilege => $reason) {

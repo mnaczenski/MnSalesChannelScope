@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.3
+
+- Fixed: pre-selected sales channels of a new product were stored but not shown in the *Sales Channels* field. Shopware adds the default visibilities after the field has rendered, and the field only follows a replaced collection; the plugin now replaces it once the defaults are added. This also affects Shopware's own default sales channels for unrestricted users.
+
 ## 0.3.2
 
 - New products of a limited user start with their own sales channels selected: the default sales channels (*Settings → Products*) among the user's channels, or all of the user's channels when none of the defaults is theirs. Before, such products could only be saved after adding a visibility by hand.

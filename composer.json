@@ -2,7 +2,7 @@
     "name": "mn/sales-channel-scope",
     "description": "Sales Channel Scope - limit admin roles to the orders and customers of their sales channels (proof of concept)",
     "type": "shopware-platform-plugin",
-    "version": "0.3.2",
+    "version": "0.3.3",
     "license": "MIT",
     "authors": [
         {

@@ -1,6 +1,8 @@
 import template from './sw-product-detail.html.twig';
 import loadChannelScope, { foreignChannelIds } from '../../service/channel-scope';
 
+const { EntityCollection } = Shopware.Data;
+
 /**
  * Products that are also sold in sales channels outside the user's scope are
  * read-only: a banner explains why and saving is disabled. The write guard
@@ -53,6 +55,29 @@ Shopware.Component.override('sw-product-detail', {
                 ...defaults,
                 defaultSalesChannelIds: own.length ? own : [...scope.salesChannelIds],
             };
+        },
+
+        /**
+         * Shopware adds the default visibilities to the new product after the
+         * sales channel select has rendered. The select copies its collection
+         * once and only follows when the collection is replaced, so the
+         * pre-selected channels were saved but not shown. Replacing the
+         * collection after Shopware added them makes the select show them.
+         */
+        fetchSalesChannelByIds(ids) {
+            return this.$super('fetchSalesChannelByIds', ids).then((salesChannels) => {
+                if (this.product?.isNew?.()) {
+                    // after Shopware's own callback has pushed the visibilities
+                    setTimeout(() => {
+                        const product = Shopware.Store.get('swProductDetail').product;
+                        if (product?.visibilities) {
+                            product.visibilities = EntityCollection.fromCollection(product.visibilities);
+                        }
+                    }, 0);
+                }
+
+                return salesChannels;
+            });
         },
     },
 

@@ -15,6 +15,11 @@
             "help": {
                 "orders": "Adds everything the order module needs, including documents (create, upload, download, send, delete), refunds, discounts and payment states. Existing permissions stay. Note: deleting documents needs the Documents settings permission \"delete\", which also allows deleting document settings."
             }
+        },
+        "product": {
+            "readOnlyTitle": "Shared product: read-only",
+            "readOnlyText": "This product is also sold in sales channels outside your role. Its data applies to all of them, so only users responsible for every one of these channels can change it.",
+            "readOnlyTooltip": "Read-only: the product is also sold in other sales channels"
         }
     }
 }

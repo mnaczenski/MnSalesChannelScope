@@ -13,6 +13,10 @@ use Shopware\Core\Checkout\Customer\Aggregate\CustomerAddress\CustomerAddressDef
 use Shopware\Core\Checkout\Customer\CustomerDefinition;
 use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemDefinition;
 use Shopware\Core\Checkout\Order\OrderDefinition;
+use Shopware\Core\Content\Product\Aggregate\ProductPrice\ProductPriceDefinition;
+use Shopware\Core\Content\Product\Aggregate\ProductReview\ProductReviewDefinition;
+use Shopware\Core\Content\Product\Aggregate\ProductVisibility\ProductVisibilityDefinition;
+use Shopware\Core\Content\Product\ProductDefinition;
 use Shopware\Core\Defaults;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityDefinition;
@@ -40,6 +44,13 @@ class WriteGuardSubscriberTest extends TestCase
     private const CUSTOMER_EN = '0190ffffffffffffffffffffffffff02';
     private const CUSTOMER_EN_BOUND_DE = '0190ffffffffffffffffffffffffff03';
     private const ADDRESS_EN = '0190999999999999999999999999ff02';
+    private const PRODUCT_DE = '0190777777777777777777777777aa01';
+    private const PRODUCT_SHARED = '0190777777777777777777777777aa02';
+    private const PRODUCT_EN = '0190777777777777777777777777aa03';
+    private const PRICE_SHARED = '0190666666666666666666666666aa02';
+    private const VISIBILITY_SHARED_DE = '0190555555555555555555555555aa01';
+    private const VISIBILITY_SHARED_EN = '0190555555555555555555555555aa02';
+    private const REVIEW_EN = '0190444444444444444444444444aa03';
 
     public function testOrdersOfTheUsersChannelCanChange(): void
     {
@@ -125,6 +136,55 @@ class WriteGuardSubscriberTest extends TestCase
         ]));
     }
 
+    public function testProductsSoldOnlyInTheUsersChannelsCanChange(): void
+    {
+        static::assertSame([], $this->denied([$this->update($this->definition(ProductDefinition::class), self::PRODUCT_DE, ['stock' => 5])]));
+        static::assertSame(['product'], $this->denied([$this->update($this->definition(ProductDefinition::class), self::PRODUCT_SHARED, ['stock' => 5])]), 'shared products are read-only');
+        static::assertSame(['product'], $this->denied([$this->delete($this->definition(ProductDefinition::class), self::PRODUCT_SHARED)]));
+        static::assertSame(['product_price'], $this->denied([$this->update($this->definition(ProductPriceDefinition::class), self::PRICE_SHARED, ['price' => '[]'])]));
+    }
+
+    public function testANewProductNeedsAVisibilityInTheUsersChannels(): void
+    {
+        $id = Uuid::randomHex();
+        $product = $this->insert($this->definition(ProductDefinition::class), $id, ['product_number' => 'X']);
+        $own = $this->insert($this->definition(ProductVisibilityDefinition::class), Uuid::randomHex(), ['product_id' => Uuid::fromHexToBytes($id), 'sales_channel_id' => Uuid::fromHexToBytes(Ids::DE)]);
+        $other = $this->insert($this->definition(ProductVisibilityDefinition::class), Uuid::randomHex(), ['product_id' => Uuid::fromHexToBytes($id), 'sales_channel_id' => Uuid::fromHexToBytes(Ids::EN)]);
+        $price = $this->insert($this->definition(ProductPriceDefinition::class), Uuid::randomHex(), ['product_id' => Uuid::fromHexToBytes($id)]);
+
+        static::assertSame([], $this->denied([$product, $own, $price]));
+        static::assertSame(['product'], $this->denied([$product]), 'no visibility');
+        static::assertSame(['product_visibility'], $this->denied([$product, $own, $other]), 'not in other channels');
+    }
+
+    public function testVariantsNeedAParentTheUserOwns(): void
+    {
+        $variant = fn (string $parent) => $this->insert($this->definition(ProductDefinition::class), Uuid::randomHex(), ['parent_id' => Uuid::fromHexToBytes($parent)]);
+
+        static::assertSame([], $this->denied([$variant(self::PRODUCT_DE)]));
+        static::assertSame(['product'], $this->denied([$variant(self::PRODUCT_SHARED)]));
+    }
+
+    public function testOwnChannelVisibilitiesOfSharedProductsCanChange(): void
+    {
+        $visibility = $this->definition(ProductVisibilityDefinition::class);
+
+        static::assertSame([], $this->denied([$this->update($visibility, self::VISIBILITY_SHARED_DE, ['visibility' => 10])]));
+        static::assertSame([], $this->denied([$this->delete($visibility, self::VISIBILITY_SHARED_DE)]));
+        static::assertSame(['product_visibility'], $this->denied([$this->delete($visibility, self::VISIBILITY_SHARED_EN)]));
+        static::assertSame(['product_visibility'], $this->denied([
+            $this->insert($visibility, Uuid::randomHex(), ['product_id' => Uuid::fromHexToBytes(self::PRODUCT_EN), 'sales_channel_id' => Uuid::fromHexToBytes(Ids::DE)]),
+        ]), 'hidden products stay hidden');
+        static::assertSame([], $this->denied([
+            $this->update($this->definition(ProductDefinition::class), self::PRODUCT_SHARED, ['updated_at' => '2026-11-10 12:00:00.000']),
+        ]), 'touching a shared product through a nested write of its own visibility');
+    }
+
+    public function testReviewsOfOtherChannelsCanNotChange(): void
+    {
+        static::assertSame(['product_review'], $this->denied([$this->update($this->definition(ProductReviewDefinition::class), self::REVIEW_EN, ['status' => 1])]));
+    }
+
     public function testUnrestrictedUsersAreNotChecked(): void
     {
         static::assertSame([], $this->denied([$this->delete($this->definition(OrderDefinition::class), self::ORDER_EN)], Ids::context(Ids::FREE_USER)));
@@ -146,6 +206,13 @@ class WriteGuardSubscriberTest extends TestCase
                 self::CUSTOMER_EN_BOUND_DE => ['salesChannelId' => Ids::EN, 'boundSalesChannelId' => Ids::DE],
             ],
             addresses: [self::ADDRESS_EN => self::CUSTOMER_EN],
+            products: [self::PRODUCT_DE => [Ids::DE], self::PRODUCT_SHARED => [Ids::DE, Ids::EN], self::PRODUCT_EN => [Ids::EN]],
+            productChildren: [self::PRICE_SHARED => self::PRODUCT_SHARED],
+            channelRecords: [
+                self::VISIBILITY_SHARED_DE => ['product' => self::PRODUCT_SHARED, 'channel' => Ids::DE],
+                self::VISIBILITY_SHARED_EN => ['product' => self::PRODUCT_SHARED, 'channel' => Ids::EN],
+            ],
+            reviews: [self::REVIEW_EN => Ids::EN],
         );
         $event = new PreWriteValidationEvent(WriteContext::createFromContext($context ?? Ids::context()), $commands);
         (new WriteGuardSubscriber(Ids::scope(), $lookup))->onPreWrite($event);
@@ -166,7 +233,7 @@ class WriteGuardSubscriberTest extends TestCase
     {
         static $registry = null;
         $registry ??= new StaticDefinitionInstanceRegistry(
-            [OrderDefinition::class, OrderLineItemDefinition::class, CustomerDefinition::class, CustomerAddressDefinition::class, SalesChannelDefinition::class, AclRoleSalesChannelDefinition::class],
+            [OrderDefinition::class, OrderLineItemDefinition::class, CustomerDefinition::class, CustomerAddressDefinition::class, SalesChannelDefinition::class, AclRoleSalesChannelDefinition::class, ProductDefinition::class, ProductPriceDefinition::class, ProductVisibilityDefinition::class, ProductReviewDefinition::class],
             Validation::createValidator(),
             $this->createMock(EntityWriteGatewayInterface::class),
         );

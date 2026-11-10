@@ -1,0 +1,36 @@
+{% block sw_product_detail_actions_save %}
+    <mt-button
+        v-if="mnReadOnly"
+        v-tooltip.bottom="$t('mn-sales-channel-scope.product.readOnlyTooltip')"
+        class="sw-product-detail__save-action mn-sales-channel-scope-read-only"
+        variant="primary"
+        size="default"
+        disabled
+    >
+        {{ $t('global.default.save') }}
+    </mt-button>
+    <template v-else>
+        {% parent %}
+    </template>
+{% endblock %}
+
+{% block sw_product_detail_actions_save_context_menu %}
+    <template v-if="!mnReadOnly">
+        {% parent %}
+    </template>
+{% endblock %}
+
+{% block sw_product_detail_content_language_info %}
+    {% parent %}
+
+    {% block mn_sales_channel_scope_product_read_only %}
+        <mt-banner
+            v-if="mnReadOnly"
+            class="mn-sales-channel-scope-product-banner"
+            variant="info"
+            :title="$t('mn-sales-channel-scope.product.readOnlyTitle')"
+        >
+            {{ $t('mn-sales-channel-scope.product.readOnlyText') }}
+        </mt-banner>
+    {% endblock %}
+{% endblock %}

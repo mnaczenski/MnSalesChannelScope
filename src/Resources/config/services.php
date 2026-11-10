@@ -2,6 +2,7 @@
 
 use Doctrine\DBAL\Connection;
 use Mn\SalesChannelScope\Command\ApplyPresetCommand;
+use Mn\SalesChannelScope\Controller\ChannelScopeController;
 use Mn\SalesChannelScope\Dashboard\ScopedOrderAmountService;
 use Mn\SalesChannelScope\Entity\AclRoleSalesChannelDefinition;
 use Mn\SalesChannelScope\Extension\AclRoleExtension;
@@ -44,6 +45,12 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set(WriteGuardSubscriber::class)
         ->args([service(ChannelScope::class), service(ScopeLookup::class)])
         ->tag('kernel.event_subscriber');
+
+    $services->set(ChannelScopeController::class)
+        ->public()
+        ->args([service(ChannelScope::class)])
+        ->call('setContainer', [service('service_container')])
+        ->tag('controller.service_arguments');
 
     $services->set(PermissionPresets::class)->args([__DIR__ . '/presets']);
     $services->set(ApplyPresetCommand::class)

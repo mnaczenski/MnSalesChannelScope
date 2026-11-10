@@ -15,6 +15,11 @@
             "help": {
                 "orders": "Fügt alles hinzu, was das Bestellmodul braucht, auch Dokumente (erstellen, hochladen, herunterladen, versenden, löschen), Erstattungen, Rabatte und Zahlungsstatus. Bestehende Berechtigungen bleiben. Hinweis: Dokumente löschen erfordert die Berechtigung \"Löschen\" der Dokument-Einstellungen, die auch das Löschen von Dokumentvorlagen erlaubt."
             }
+        },
+        "product": {
+            "readOnlyTitle": "Geteiltes Produkt: nur lesen",
+            "readOnlyText": "Dieses Produkt wird auch in Verkaufskanälen außerhalb Ihrer Rolle verkauft. Seine Daten gelten für alle, deshalb können es nur Benutzer ändern, die für jeden dieser Kanäle zuständig sind.",
+            "readOnlyTooltip": "Nur lesen: Das Produkt wird auch in anderen Verkaufskanälen verkauft"
         }
     }
 }

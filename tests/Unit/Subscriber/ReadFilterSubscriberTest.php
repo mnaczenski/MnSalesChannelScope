@@ -102,19 +102,39 @@ class ReadFilterSubscriberTest extends TestCase
         static::assertSame([], $criteria->getAssociation('defaultBillingAddress')->getFilters(), 'many-to-one joins take no filter');
     }
 
-    public function testEntitiesWithoutARuleStayUntouched(): void
+    public function testProductsAreVisibleWhenSoldInTheUsersChannels(): void
     {
         $criteria = new Criteria();
+        $criteria->addAssociation('children');
         $criteria->addAssociation('orderLineItems');
 
         $this->search(ProductDefinition::class, $criteria);
 
-        static::assertSame([], $criteria->getFilters(), 'products come in iteration 2');
+        $filter = $criteria->getFilters()[0] ?? null;
+        static::assertInstanceOf(OrFilter::class, $filter);
+        static::assertSame(['visibilities.salesChannelId', 'parent.visibilities.salesChannelId'], $this->fields($filter), 'variants count through their parent');
+
+        $variants = $criteria->getAssociation('children')->getFilters()[0] ?? null;
+        static::assertInstanceOf(OrFilter::class, $variants);
         static::assertEquals(
             [new EqualsAnyFilter('order.salesChannelId', [Ids::DE])],
             $criteria->getAssociation('orderLineItems')->getFilters(),
-            'but their order line items are filtered',
         );
+    }
+
+    public function testProductDetailsGoThroughTheirProduct(): void
+    {
+        $filter = (new ScopeRules())->readFilter('product_price', [Ids::DE]);
+
+        static::assertInstanceOf(OrFilter::class, $filter);
+        static::assertSame(['product.visibilities.salesChannelId', 'product.parent.visibilities.salesChannelId'], $this->fields($filter));
+        static::assertEquals(new EqualsAnyFilter('salesChannelId', [Ids::DE]), (new ScopeRules())->readFilter('product_review', [Ids::DE]));
+    }
+
+    public function testEntitiesWithoutARuleStayUntouched(): void
+    {
+        static::assertNull((new ScopeRules())->readFilter('property_group', [Ids::DE]));
+        static::assertNull((new ScopeRules())->readFilter('product_manufacturer', [Ids::DE]));
     }
 
     public function testAggregationsAreFiltered(): void

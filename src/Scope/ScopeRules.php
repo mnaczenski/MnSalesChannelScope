@@ -7,8 +7,12 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\Filter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\OrFilter;
 
 /**
- * Which records of an entity a restricted user may see (iteration 1:
- * sales channels, orders and their details, customers and their addresses).
+ * Which records of an entity a restricted user may see: only what is
+ * connected to their sales channels.
+ *
+ * Iteration 1: sales channels, orders and their details, customers and their
+ * addresses. Iteration 2: products (sold in one of the channels; variants
+ * through their parent), their details, product reviews.
  */
 class ScopeRules
 {
@@ -22,6 +26,17 @@ class ScopeRules
         'document',
     ];
 
+    /** Entities that belong to a product (column product_id / association "product"). */
+    public const PRODUCT_CHILDREN = [
+        'product_price',
+        'product_media',
+        'product_visibility',
+        'product_configurator_setting',
+        'product_cross_selling',
+        'product_download',
+        'product_search_keyword',
+    ];
+
     /**
      * @param list<string> $salesChannelIds
      */
@@ -33,8 +48,26 @@ class ScopeRules
             \in_array($entity, self::ORDER_CHILDREN, true) => new EqualsAnyFilter('order.salesChannelId', $salesChannelIds),
             $entity === 'customer' => $this->customer('', $salesChannelIds),
             $entity === 'customer_address' => $this->customer('customer.', $salesChannelIds),
+            $entity === 'product' => $this->product('', $salesChannelIds),
+            \in_array($entity, self::PRODUCT_CHILDREN, true) => $this->product('product.', $salesChannelIds),
+            $entity === 'product_review' => new EqualsAnyFilter('salesChannelId', $salesChannelIds),
             default => null,
         };
+    }
+
+    /**
+     * Visible: sold in one of the channels. Variants usually have no
+     * visibilities of their own and inherit their parent's, so the parent's
+     * count too (independent of the context's inheritance setting).
+     *
+     * @param list<string> $salesChannelIds
+     */
+    private function product(string $prefix, array $salesChannelIds): Filter
+    {
+        return new OrFilter([
+            new EqualsAnyFilter($prefix . 'visibilities.salesChannelId', $salesChannelIds),
+            new EqualsAnyFilter($prefix . 'parent.visibilities.salesChannelId', $salesChannelIds),
+        ]);
     }
 
     /**

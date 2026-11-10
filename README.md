@@ -2,7 +2,7 @@
 
 Limit admin roles to sales channels. A user whose role is limited to the *Austria* storefront sees and changes only the orders and customers of that channel: lists, detail pages, search, the dashboard and the API all behave as if the other channels didn't exist.
 
-> **Status: proof of concept (0.2.0).** Built for Shopware 6.7 to show how far sales-channel permissions go with a plugin and without core changes. Iteration 1 covers orders and customers. Not for production use yet; see [Limitations](#limitations).
+> **Status: proof of concept (0.3.0).** Built for Shopware 6.7 to show how far sales-channel permissions go with a plugin and without core changes. Covered so far: orders, customers and products. Not for production use yet; see [Limitations](#limitations).
 
 - [Why](#why)
 - [Quick start](#quick-start)
@@ -68,7 +68,7 @@ Nothing changes for existing setups: until a role gets sales channels, the plugi
 
 ### How each entity belongs to a sales channel
 
-Only orders belong to exactly one sales channel. Everything else is shared or linked indirectly, so the rule distinguishes **seeing** a record from **changing** it.
+The principle: **with a scope, you only see what is connected to your sales channels.** Only orders belong to exactly one sales channel. Everything else is shared or linked indirectly, so the rule distinguishes **seeing** a record from **changing** it: a record that is also connected to other channels is read-only.
 
 | Entity | Link to the sales channel | Sees it | Changes it | Iteration |
 |---|---|---|---|---|
@@ -77,9 +77,11 @@ Only orders belong to exactly one sales channel. Everything else is shared or li
 | Customers | `salesChannelId` (registered in) and optional `boundSalesChannelId`; unbound customers can log in to every channel | registered in, bound to **or ordered in** one of the user's channels | registered in or bound to one of the user's channels | **1** |
 | Customer addresses | through their customer | as their customer | as their customer | **1** |
 | Sales channels | the channel itself | the user's channels | update own channels only; never create or delete | **1** |
-| Products | `product_visibility`, many to many; variants inherit | visible in one of the user's channels | all of its channels are the user's, otherwise read-only | 2 |
-| Categories | none; channels point to entry categories, `category.path` holds the tree | below an entry category of the user's channels | the tree is used only by the user's channels | 2 |
-| Shopping Experiences | none; used by categories, products, landing pages and per-channel defaults | used by something the user sees | used only within the user's channels | 2 |
+| Products | `product_visibility`, many to many; variants inherit their parent's | sold in one of the user's channels | sold only in the user's channels, otherwise read-only; the user's own channel visibilities can always change | **2** |
+| Product details (prices, media, visibilities, configurator, cross-selling, downloads, search keywords) | through their product | as their product | as their product | **2** |
+| Product reviews | `product_review.salesChannelId` | its channel is the user's | its channel is the user's | **2** |
+| Categories | none; channels point to entry categories, `category.path` holds the tree | in the tree of one of the user's channels; trees outside every channel are hidden | the tree is used only by the user's channels | 2 (next) |
+| Shopping Experiences | none; used by categories, products, landing pages and per-channel defaults | used by something the user sees, or created by the user's channels and still unused | used only within the user's channels | 2 (next) |
 
 Customers are the subtle case. A customer registered in channel B who also ordered in channel A is visible to the team of channel A, because they handle that customer's orders in A. But only the team of channel B may change the customer, because the account belongs to channel B.
 
@@ -132,6 +134,9 @@ The table `mn_acl_role_sales_channel` maps ACL roles to sales channels. `AclRole
 | `order_line_item`, `order_delivery`, `order_transaction`, `order_address`, `order_customer`, `document` | `order.salesChannelId IN (…)` |
 | `customer` | `salesChannelId IN (…) OR boundSalesChannelId IN (…) OR orderCustomers.order.salesChannelId IN (…)` |
 | `customer_address` | the customer rule, prefixed with `customer.` |
+| `product` | `visibilities.salesChannelId IN (…) OR parent.visibilities.salesChannelId IN (…)` (variants usually have no visibilities of their own) |
+| `product_price`, `product_media`, `product_visibility`, `product_configurator_setting`, `product_cross_selling`, `product_download`, `product_search_keyword` | the product rule, prefixed with `product.` |
+| `product_review` | `salesChannelId IN (…)` |
 
 Associations need extra care: Shopware loads to-many associations (a customer's addresses, an order's line items) without dispatching a search event of their own. The subscriber therefore walks the criteria's associations and adds the same rules to every to-many association, at any depth. Many-to-one and one-to-one associations are joins and can't take a filter; their own entity is filtered whenever it's searched directly.
 
@@ -143,7 +148,13 @@ Associations need extra care: Shopware loads to-many associations (a customer's 
 - new orders in, or moves of orders to, another channel;
 - changes to customers and their addresses unless the customer is registered in or bound to one of the user's channels, and registering or binding customers to other channels;
 - creating or deleting sales channels, and updating channels that aren't the user's;
-- any change to the role-to-channel mapping.
+- any change to the role-to-channel mapping;
+- changes to products sold in other channels too (shared products are read-only), and to their prices, media, categories, properties, options, tags, configurator settings, cross-sellings, downloads and search keywords;
+- new products without a visibility in one of the user's channels, and new variants of products the user doesn't own;
+- visibilities and main categories of other channels, and visibilities for products the user can't see (hidden products stay hidden);
+- changes to product reviews of other channels.
+
+Visibilities of the user's own channels may change on every product they see, also on shared ones: adding or removing a product from their own channel is their call.
 
 Records inserted in the same write (a new order with its line items, a new customer with addresses) are checked against each other, so creating them together works. Stored values are read with `DbalScopeLookup`.
 
@@ -161,6 +172,8 @@ The dashboard's turnover chart comes from `OrderAmountService`, which queries th
 
 - `sw-users-permissions-role-detail`: loads the role with its `mnSalesChannels`.
 - `sw-users-permissions-role-view-general`: the sales channel picker and the preset button.
+- `sw-product-detail`: shared products show a "Shared product: read-only" banner and saving is disabled.
+- `GET /api/_action/mn-channel-scope/me` returns `{ restricted, salesChannelIds }` for these screens. It only drives the UI; the server enforces the rules.
 
 ## Permission preset: Order management
 
@@ -197,7 +210,9 @@ and copy `privileges` into `expandedPrivileges`.
 
 | Gap | Effect | Planned fix |
 |---|---|---|
-| Products, categories, Shopping Experiences, promotions, reviews, newsletter recipients, per-channel settings | not limited yet | iteration 2 |
+| Categories, Shopping Experiences, promotions, landing pages, newsletter recipients, per-channel settings | not limited yet | iteration 2 |
+| Product screens other than the detail page (bulk edit, variant generator, list inline edit) | not marked read-only; the write guard refuses the change | mark them in the UI |
+| Product cross-selling assigned products | not checked | check through their cross-selling |
 | Many-to-one joins | a joined record is still shown where another entity references it (for example a review's customer) | filter the root entity; accept the joined label |
 | Other raw SQL endpoints (statistics, reports) | may show figures of all channels | decorate one by one |
 | Admin search hit counts | results are filtered, counts unchecked | check and fix |
@@ -257,10 +272,10 @@ After changing the administration sources, run `bin/build-administration.sh` in 
 ## Roadmap
 
 1. **Iteration 1 (done):** orders, order details, customers, sales channels, dashboard, order preset.
-2. **Iteration 2:** products (visibility, read-only when shared), categories (entry-point trees), Shopping Experiences ("duplicate to edit" for shared layouts), promotions, reviews, newsletter recipients, per-channel settings, more raw SQL endpoints, Import/Export.
+2. **Iteration 2 (in progress):** products and reviews (done), categories (entry-point trees, hidden outside), Shopping Experiences (owned by the creating channels while unused, "duplicate to edit" when shared), promotions, landing pages, newsletter recipients, per-channel settings, more raw SQL endpoints, Import/Export.
 3. **Iteration 3:** Commercial features and integrations with their own channel scope.
 
-Open questions for merchants: should "ordered in the channel" make a customer visible? Should limited users change channel settings? Should integrations get the same limits?
+Decided: shared records are read-only; categories outside every channel are hidden; unused layouts belong to the channels of the user who created them. Open: should "ordered in the channel" make a customer visible? Should limited users change channel settings? Should integrations get the same limits?
 
 ## License
 

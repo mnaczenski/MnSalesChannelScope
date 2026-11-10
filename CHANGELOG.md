@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+- Products (iteration 2): limited users see only products sold in their sales channels (variants through their parent) and their prices, media, visibilities, configurator settings, cross-sellings, downloads and search keywords, and only product reviews of their channels.
+- Shared products (also sold in other channels) are read-only: the product page shows a banner and disables saving, and the write guard refuses changes. Products sold only in the user's channels stay editable.
+- New products need a visibility in one of the user's channels; new variants need a parent the user owns. Visibilities and main categories of the user's own channels can be changed on every product they see.
+- `GET /api/_action/mn-channel-scope/me` tells the administration whether the user is limited and to which channels.
+
 ## 0.2.0
 
 - Permission preset *Order management* (`src/Resources/config/presets/orders.json`): everything the order module needs, including documents (create, upload, download, send, delete), refunds, discounts and payment and delivery states.

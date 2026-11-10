@@ -31,4 +31,36 @@ interface ScopeLookup
      * @return array{salesChannelId: string, boundSalesChannelId: ?string}|null
      */
     public function customerChannelsOfAddress(array $primaryKey): ?array;
+
+    /**
+     * Sales channels (hex) a product is sold in: its own visibilities, or its
+     * parent's when it has none (variants). Null when the product doesn't exist.
+     *
+     * @return list<string>|null
+     */
+    public function productChannels(string $productId): ?array;
+
+    /**
+     * Product id (bytes) of a stored record in a product table (column product_id).
+     *
+     * @param array<string, string> $primaryKey
+     */
+    public function productIdOf(string $entity, array $primaryKey): ?string;
+
+    /**
+     * Stored product id (bytes) and sales channel id (hex) of a record with
+     * both columns (product_visibility, main_category).
+     *
+     * @param array<string, string> $primaryKey
+     *
+     * @return array{productId: string, salesChannelId: string}|null
+     */
+    public function productChannelRecord(string $entity, array $primaryKey): ?array;
+
+    /**
+     * Sales channel id (hex) of a stored product review.
+     *
+     * @param array<string, string> $primaryKey
+     */
+    public function reviewChannel(array $primaryKey): ?string;
 }

@@ -23,6 +23,8 @@ class SystemConfigGuardSubscriberTest extends TestCase
         static::assertNull($this->deny(SystemConfigGuardSubscriber::READ_ROUTE, ['domain' => 'core.cart', 'salesChannelId' => Ids::DE]));
         static::assertNull($this->deny(SystemConfigGuardSubscriber::READ_ROUTE, ['domain' => 'core.cart']));
         static::assertNull($this->deny(SystemConfigGuardSubscriber::READ_ROUTE, ['domain' => 'core.tax']));
+        static::assertNull($this->deny(SystemConfigGuardSubscriber::READ_ROUTE, ['domain' => 'storefront', 'salesChannelId' => Ids::DE]));
+        static::assertNotNull($this->deny(SystemConfigGuardSubscriber::SAVE_ROUTE, ['salesChannelId' => Ids::DE], ['storefront.themeSeed' => 'x']));
     }
 
     public function testNoReadsOfOtherChannelsCredentialsOrPluginSettings(): void

@@ -10,6 +10,7 @@ namespace Mn\SalesChannelScope\Scope;
  *   that apply to all channels, which the administration shows as inherited
  *   values. Not: plugin and app settings, and core settings that hold
  *   credentials or affect the whole installation (mailer, store, license, ...).
+ *   Also the storefront's theme bookkeeping (pending theme, theme seeds).
  * - Change: the sales channel specific settings pages of the "Sales channel
  *   settings" preset, and only for their own channels.
  */
@@ -39,8 +40,14 @@ final class ConfigRules
         'core.webhook',
     ];
 
+    /** Other domains the administration reads on pages of the presets (theme bookkeeping on the sales channel page). */
+    public const READABLE_DOMAINS = ['storefront'];
+
     public static function isReadable(string $keyOrDomain): bool
     {
+        if (self::inDomains($keyOrDomain, self::READABLE_DOMAINS)) {
+            return true;
+        }
         if (!str_starts_with($keyOrDomain, 'core.')) {
             return false;
         }

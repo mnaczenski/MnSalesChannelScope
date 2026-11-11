@@ -89,14 +89,19 @@ class ReadFilterSubscriberTest extends TestCase
         $filter = $this->search(SystemConfigDefinition::class)->getFilters()[0] ?? null;
 
         static::assertInstanceOf(AndFilter::class, $filter);
-        [$channels, $core, $hidden] = $filter->getQueries();
+        [$channels, $core] = $filter->getQueries();
+        $hidden = $filter->getQueries()[2] ?? null;
         static::assertEquals(new OrFilter([
             new EqualsAnyFilter('salesChannelId', [Ids::DE]),
             new EqualsFilter('salesChannelId', null),
         ]), $channels);
-        static::assertEquals(new PrefixFilter('configurationKey', 'core.'), $core);
-        static::assertInstanceOf(NotFilter::class, $hidden);
-        static::assertContainsEquals(new PrefixFilter('configurationKey', 'core.mailerSettings.'), $hidden->getQueries());
+        static::assertInstanceOf(OrFilter::class, $core);
+        [$coreOnly, $storefront] = $core->getQueries();
+        static::assertInstanceOf(AndFilter::class, $coreOnly);
+        static::assertEquals(new PrefixFilter('configurationKey', 'core.'), $coreOnly->getQueries()[0]);
+        static::assertContainsEquals(new PrefixFilter('configurationKey', 'core.mailerSettings.'), $coreOnly->getQueries()[1]->getQueries());
+        static::assertEquals(new PrefixFilter('configurationKey', 'storefront.'), $storefront);
+        static::assertNull($hidden);
     }
 
     public function testLayoutPartsGoThroughTheirLayout(): void

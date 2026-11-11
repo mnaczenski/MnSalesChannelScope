@@ -86,4 +86,18 @@ interface ScopeLookup
      * @return list<string>|null
      */
     public function landingPageChannels(string $landingPageId, string $versionId): ?array;
+
+    /**
+     * Sales channels (hex) that use a stored analytics record, null when it doesn't exist.
+     *
+     * @return list<string>|null
+     */
+    public function analyticsChannels(string $analyticsId): ?array;
+
+    /**
+     * Sales channels (hex) a theme is assigned to (bytes id).
+     *
+     * @return list<string>
+     */
+    public function themeChannels(string $themeId): array;
 }

@@ -22,6 +22,7 @@ use Mn\SalesChannelScope\Subscriber\CloneGuardSubscriber;
 use Mn\SalesChannelScope\Subscriber\CmsGuardSubscriber;
 use Mn\SalesChannelScope\Subscriber\ImitateCustomerGuardSubscriber;
 use Mn\SalesChannelScope\Subscriber\SystemConfigGuardSubscriber;
+use Mn\SalesChannelScope\Subscriber\ThemeGuardSubscriber;
 use Mn\SalesChannelScope\Subscriber\ReadFilterSubscriber;
 use Mn\SalesChannelScope\Subscriber\WriteGuardSubscriber;
 use Mn\SalesChannelScope\Totals\ChannelTotals;
@@ -88,6 +89,10 @@ return static function (ContainerConfigurator $configurator): void {
 
     $services->set(CloneGuardSubscriber::class)
         ->args([service(ChannelScope::class), service(DefinitionInstanceRegistry::class), service(ScopeLookup::class), service(CmsPages::class)])
+        ->tag('kernel.event_subscriber');
+
+    $services->set(ThemeGuardSubscriber::class)
+        ->args([service(ChannelScope::class), service(ScopeLookup::class)])
         ->tag('kernel.event_subscriber');
 
     $services->set(SystemConfigGuardSubscriber::class)

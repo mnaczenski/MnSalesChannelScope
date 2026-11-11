@@ -22,6 +22,8 @@ final class StaticScopeLookup implements ScopeLookup
      * @param array<string, string> $settings setting id => sales channel id ('' for all channels)
      * @param array<string, string> $configKeys system_config id => configuration key
      * @param array<string, list<string>> $landingPages landing page id => sales channel ids
+     * @param array<string, list<string>> $analytics analytics id => sales channel ids
+     * @param array<string, list<string>> $themes theme id => sales channel ids
      */
     public function __construct(
         private readonly array $orders = [],
@@ -35,6 +37,8 @@ final class StaticScopeLookup implements ScopeLookup
         private readonly array $settings = [],
         private readonly array $configKeys = [],
         private readonly array $landingPages = [],
+        private readonly array $analytics = [],
+        private readonly array $themes = [],
     ) {
     }
 
@@ -68,6 +72,16 @@ final class StaticScopeLookup implements ScopeLookup
     public function settingChannel(string $entity, array $primaryKey): ?string
     {
         return $this->settings[Uuid::fromBytesToHex($primaryKey['id'])] ?? null;
+    }
+
+    public function analyticsChannels(string $analyticsId): ?array
+    {
+        return $this->analytics[Uuid::fromBytesToHex($analyticsId)] ?? null;
+    }
+
+    public function themeChannels(string $themeId): array
+    {
+        return $this->themes[Uuid::fromBytesToHex($themeId)] ?? [];
     }
 
     public function landingPageChannels(string $landingPageId, string $versionId): ?array

@@ -30,6 +30,8 @@ use Shopware\Core\Framework\DataAbstractionLayer\Write\WriteContext;
 use Shopware\Core\Framework\Uuid\Uuid;
 use Shopware\Core\System\SalesChannel\SalesChannelDefinition;
 use Shopware\Core\System\SystemConfig\SystemConfigDefinition;
+use Shopware\Core\System\SalesChannel\Aggregate\SalesChannelCountry\SalesChannelCountryDefinition;
+use Shopware\Core\System\SalesChannel\Aggregate\SalesChannelAnalytics\SalesChannelAnalyticsDefinition;
 use Shopware\Core\Content\LandingPage\LandingPageDefinition;
 use Shopware\Core\Content\LandingPage\Aggregate\LandingPageSalesChannel\LandingPageSalesChannelDefinition;
 use Shopware\Core\Content\Product\SalesChannel\Sorting\ProductSortingDefinition;
@@ -60,6 +62,8 @@ class WriteGuardSubscriberTest extends TestCase
     private const CONFIG_ALL = '0190333333333333333333333333aa00';
     private const CONFIG_DE_LISTING = '0190333333333333333333333333aa03';
     private const LANDING_DE = '0190222222222222222222222222aa01';
+    private const ANALYTICS_DE = '0190111111111111111111111111aa01';
+    private const ANALYTICS_EN = '0190111111111111111111111111aa02';
     private const LANDING_SHARED = '0190222222222222222222222222aa02';
 
     public function testOrdersOfTheUsersChannelCanChange(): void
@@ -236,6 +240,26 @@ class WriteGuardSubscriberTest extends TestCase
         static::assertSame(['landing_page_sales_channel'], $this->denied([$this->insert($landing, $new, ['active' => 1]), $map($new, Ids::EN)]));
     }
 
+    public function testWhatAChannelOffersOnlyChangesForTheUsersChannels(): void
+    {
+        $country = $this->definition(SalesChannelCountryDefinition::class);
+        $key = fn (string $channel) => ['sales_channel_id' => Uuid::fromHexToBytes($channel), 'country_id' => Uuid::fromHexToBytes('0190000000000000000000000000c001')];
+        $insert = fn (string $channel) => new InsertCommand($country, [], $key($channel), $this->existence('sales_channel_country', false), '');
+        $delete = fn (string $channel) => new DeleteCommand($country, $key($channel), $this->existence('sales_channel_country', true));
+
+        static::assertSame([], $this->denied([$insert(Ids::DE), $delete(Ids::DE)]));
+        static::assertSame(['sales_channel_country', 'sales_channel_country'], $this->denied([$insert(Ids::EN), $delete(Ids::EN)]));
+    }
+
+    public function testAnalyticsOfOtherChannelsCanNotChange(): void
+    {
+        $analytics = $this->definition(SalesChannelAnalyticsDefinition::class);
+
+        static::assertSame([], $this->denied([$this->update($analytics, self::ANALYTICS_DE, ['active' => 1])]));
+        static::assertSame(['sales_channel_analytics'], $this->denied([$this->update($analytics, self::ANALYTICS_EN, ['active' => 1])]));
+        static::assertSame([], $this->denied([$this->insert($analytics, Uuid::randomHex(), ['active' => 1])]));
+    }
+
     public function testProductSortingsApplyToAllChannels(): void
     {
         static::assertSame(['product_sorting'], $this->denied([$this->update($this->definition(ProductSortingDefinition::class), Uuid::randomHex(), ['priority' => 1])]));
@@ -270,6 +294,7 @@ class WriteGuardSubscriberTest extends TestCase
             ],
             reviews: [self::REVIEW_EN => Ids::EN],
             settings: [self::CONFIG_DE => Ids::DE, self::CONFIG_EN => Ids::EN, self::CONFIG_ALL => '', self::CONFIG_DE_LISTING => Ids::DE],
+            analytics: [self::ANALYTICS_DE => [Ids::DE], self::ANALYTICS_EN => [Ids::EN]],
             landingPages: [self::LANDING_DE => [Ids::DE], self::LANDING_SHARED => [Ids::DE, Ids::EN]],
             configKeys: [
                 self::CONFIG_DE => 'core.cart.maxQuantity',
@@ -297,7 +322,7 @@ class WriteGuardSubscriberTest extends TestCase
     {
         static $registry = null;
         $registry ??= new StaticDefinitionInstanceRegistry(
-            [OrderDefinition::class, OrderLineItemDefinition::class, CustomerDefinition::class, CustomerAddressDefinition::class, SalesChannelDefinition::class, AclRoleSalesChannelDefinition::class, ProductDefinition::class, ProductPriceDefinition::class, ProductVisibilityDefinition::class, ProductReviewDefinition::class, SystemConfigDefinition::class, ProductSortingDefinition::class, LandingPageDefinition::class, LandingPageSalesChannelDefinition::class],
+            [OrderDefinition::class, OrderLineItemDefinition::class, CustomerDefinition::class, CustomerAddressDefinition::class, SalesChannelDefinition::class, AclRoleSalesChannelDefinition::class, ProductDefinition::class, ProductPriceDefinition::class, ProductVisibilityDefinition::class, ProductReviewDefinition::class, SystemConfigDefinition::class, ProductSortingDefinition::class, LandingPageDefinition::class, LandingPageSalesChannelDefinition::class, SalesChannelCountryDefinition::class, SalesChannelAnalyticsDefinition::class],
             Validation::createValidator(),
             $this->createMock(EntityWriteGatewayInterface::class),
         );

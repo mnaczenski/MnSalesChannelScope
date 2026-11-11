@@ -73,6 +73,23 @@ class ScopeRules
         'seo_url',
         'seo_url_template',
         'sales_channel_domain',
+        'product_export',
+        'sales_channel_file',
+    ];
+
+    /**
+     * What a sales channel offers (column / primary key sales_channel_id):
+     * countries, currencies, languages, payment and shipping methods, its
+     * translations and its theme.
+     */
+    public const CHANNEL_MAPPINGS = [
+        'sales_channel_country',
+        'sales_channel_currency',
+        'sales_channel_language',
+        'sales_channel_payment_method',
+        'sales_channel_shipping_method',
+        'sales_channel_translation',
+        'theme_sales_channel',
     ];
 
     /**
@@ -93,6 +110,8 @@ class ScopeRules
             $entity === 'category' => $this->categories?->readFilter($salesChannelIds),
             $entity === 'system_config' => $this->systemConfig($salesChannelIds),
             $entity === 'landing_page' => new EqualsAnyFilter('salesChannels.id', $salesChannelIds),
+            \in_array($entity, self::CHANNEL_MAPPINGS, true) => new EqualsAnyFilter('salesChannelId', $salesChannelIds),
+            $entity === 'sales_channel_analytics' => new EqualsAnyFilter('salesChannel.id', $salesChannelIds),
             \in_array($entity, self::LANDING_PAGE_CHILDREN, true) => new EqualsAnyFilter('landingPage.salesChannels.id', $salesChannelIds),
             isset(self::CMS_PARTS[$entity]) && $this->cms !== null => new EqualsAnyFilter(
                 self::CMS_PARTS[$entity],
@@ -121,8 +140,13 @@ class ScopeRules
                 new EqualsAnyFilter('salesChannelId', $salesChannelIds),
                 new EqualsFilter('salesChannelId', null),
             ]),
-            new PrefixFilter('configurationKey', 'core.'),
-            new NotFilter(NotFilter::CONNECTION_OR, $hidden),
+            new OrFilter([
+                new AndFilter([
+                    new PrefixFilter('configurationKey', 'core.'),
+                    new NotFilter(NotFilter::CONNECTION_OR, $hidden),
+                ]),
+                ...array_map(static fn (string $domain) => new PrefixFilter('configurationKey', $domain . '.'), ConfigRules::READABLE_DOMAINS),
+            ]),
         ]);
     }
 

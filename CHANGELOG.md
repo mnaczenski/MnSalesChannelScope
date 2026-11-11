@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.0
+
+- The *Sales channel settings* preset also gives the role its own sales channels (*Sales Channels* in the main menu, Shopware's sales channel viewer and editor roles). Creating and deleting sales channels stays with unrestricted users.
+- What a sales channel offers (countries, currencies, languages, payment and shipping methods, translations, theme assignment), its analytics, product comparison exports and files: limited users see and change only those of their channels.
+- Themes: assigning a theme only to their channels (`POST /api/_action/theme/{id}/assign/{salesChannelId}` marks the pending theme with plain SQL and may switch after an asynchronous compilation, so it is checked on the route); changing or resetting a theme's configuration only when it is used by their channels only (`ThemeGuardSubscriber`; Shopware checks no privilege on these routes).
+- Configuration values: limited users may also read the storefront's theme bookkeeping (`storefront.*`: pending theme, theme seeds), which the sales channel's theme tab shows; changing it stays with Shopware's theme assignment.
+
 ## 0.7.0
 
 - Shopping Experiences: a layout belongs to the sales channels of the categories, products and landing pages that use it, of the default layout settings that name it and, while nothing uses it, of the limited user who created it (new table `mn_cms_page_sales_channel`). Limited users see the layouts of their channels and Shopware's locked layouts; they edit layouts that belong to their channels only. Shared layouts look like locked ones in the editor (overlay, hint, no saving); copies of them belong to the user's channels. Sections, blocks, slots and translations follow their layout. Categories, products and landing pages can only get layouts the user sees.

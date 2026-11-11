@@ -77,6 +77,8 @@ The principle: **with a scope, you only see what is connected to your sales chan
 | Customers | `salesChannelId` (registered in) and optional `boundSalesChannelId`; unbound customers can log in to every channel | registered in, bound to **or ordered in** one of the user's channels | registered in or bound to one of the user's channels | **1** |
 | Customer addresses | through their customer | as their customer | as their customer | **1** |
 | Sales channels | the channel itself | the user's channels | update own channels only; never create or delete | **1** |
+| What a sales channel offers (countries, currencies, languages, payment and shipping methods, translations, theme), analytics, product comparison | `sales_channel_id`, or the channel that uses it (analytics) | of the user's channels | of the user's channels | **2** |
+| Themes | `theme_sales_channel` | all (they are listed for every channel) | assigned only to the user's channels | **2** |
 | Products | `product_visibility`, many to many; variants inherit their parent's | sold in one of the user's channels | sold only in the user's channels, otherwise read-only; the user's own channel visibilities can always change | **2** |
 | Product details (prices, media, visibilities, configurator, cross-selling, downloads, search keywords) | through their product | as their product | as their product | **2** |
 | Product reviews | `product_review.salesChannelId` | its channel is the user's | its channel is the user's | **2** |
@@ -181,6 +183,7 @@ A few core endpoints check records without the search events the read filter hoo
 | Dashboard turnover | raw SQL | `ScopedOrderAmountService`, see below |
 | Admin search (`POST /api/_admin/search`) | none: it searches through the repositories | – |
 | Clone (`POST /api/_action/clone/{entity}/{id}`) | reads the source without search events and writes the copy in the system scope: hidden records could be copied, the write guard doesn't see the copy | `CloneGuardSubscriber`: the source must be visible to the user, a product sold in their channels only; copies of layouts belong to their channels |
+| Theme assignment and configuration (`/api/_action/theme/...`) | the assignment marks the pending theme with plain SQL and may switch after an asynchronous compilation; configuration routes check no privilege | `ThemeGuardSubscriber`: assign only to the user's channels; configure only themes used by their channels only |
 | Order state transitions | none: the state machine reads the order through the repository, other channels' orders are "not found" | – |
 | Store API proxy and admin order creation (`/api/_proxy/...`, `/api/_proxy-order/...`) | none: the channel is read through the repository | – |
 | Import/Export | the presets don't grant it; an export job runs with the user's context, so the read filter applies (not tested end to end) | – |
@@ -258,6 +261,8 @@ Shopware keeps one set of configuration values per sales channel, with the value
 | Newsletter | `core.newsletter` |
 | Sitemap | `core.sitemap` |
 | SEO | URL templates (`seo_url_template`) of their channels; the "redirect to canonical URL" card applies to all channels and is hidden |
+
+The preset also includes Shopware's sales channel viewer and editor roles, so the role's own channels appear under *Sales Channels* in the main menu (the list is filtered to them). The write guard limits everything the sales channel page changes to those channels; creating and deleting sales channels stays with unrestricted users.
 
 The pages need Shopware's *Settings* role (`system.system_config`), which is not limited to channels or pages. The plugin narrows it down:
 

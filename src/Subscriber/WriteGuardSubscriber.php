@@ -42,7 +42,11 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  * - sales channel settings (configuration, SEO URLs and templates, domains):
  *   only those of their channels, none that apply to all channels;
  *   configuration only on the pages of the settings preset (ConfigRules);
- * - product sortings: they apply to all channels.
+ * - product sortings: they apply to all channels;
+ * - what a sales channel offers (countries, currencies, languages, payment
+ *   and shipping methods, translations, theme assignment) and its analytics:
+ *   only for their channels;
+ * - themes: only those used by their channels only.
  */
 class WriteGuardSubscriber implements EventSubscriberInterface
 {
@@ -419,6 +423,36 @@ class WriteGuardSubscriber implements EventSubscriberInterface
             }
             if ($entity === 'landing_page_sales_channel' && !isset($allowed[$this->hex($primaryKey['sales_channel_id'] ?? null) ?? ''])) {
                 return 'landing pages can only be shown in your sales channels';
+            }
+
+            return null;
+        }
+
+        if (\in_array($entity, ScopeRules::CHANNEL_MAPPINGS, true)) {
+            $channel = $this->hex($primaryKey['sales_channel_id'] ?? $payload['sales_channel_id'] ?? null);
+            if (!isset($allowed[$channel ?? ''])) {
+                return 'the sales channel is not one of yours';
+            }
+
+            return null;
+        }
+
+        if ($entity === 'sales_channel_analytics' && !$insert) {
+            $channels = $this->lookup->analyticsChannels((string) ($primaryKey['id'] ?? ''));
+            if ($channels === null || $channels === [] || array_diff($channels, array_keys($allowed)) !== []) {
+                return 'the analytics settings belong to another sales channel';
+            }
+
+            return null;
+        }
+
+        if ($entity === 'theme') {
+            if ($insert) {
+                return 'only unrestricted users install themes';
+            }
+            $channels = $this->lookup->themeChannels((string) ($primaryKey['id'] ?? ''));
+            if ($channels === [] || array_diff($channels, array_keys($allowed)) !== []) {
+                return 'the theme is also used by other sales channels';
             }
 
             return null;

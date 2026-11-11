@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.3
+
+- Requires Shopware 6.7.14 or newer. Three administration internals the plugin builds on appeared between 6.7.12 and 6.7.14 (`sw-cms-detail.canSave` among them); `composer.json` promised `~6.7.0`.
+- New compatibility policy (`docs/compatibility.md`): public API, supported versions, how compatibility is checked, and the Shopware internals the plugin depends on.
+- Continuous integration: PHPStan and unit tests against the lowest and highest Shopware 6.7; an installed shop for 6.7.14.0, 6.7.16.0 and trunk; a check that the 14 overridden administration components still have the methods and Twig blocks the plugin uses.
+
 ## 0.11.2
 
 - Order management preset: adds `version_commit:delete`. Leaving an order in edit mode without saving discards its draft version; since Shopware 6.7.16 that also deletes the version's commits with the user's permissions, which no admin role grants, so every non-admin user got "Missing privilege: version_commit:delete".

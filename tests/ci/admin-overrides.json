@@ -1,0 +1,16 @@
+{
+    "sw-admin-menu": { "members": ["navigationEntries"] },
+    "sw-settings-index": { "members": ["settingsGroups"] },
+    "sw-search-bar": { "members": ["adminEsEnable"] },
+    "sw-sales-channel-switch": { "members": ["onChange", "salesChannelId"], "blocks": ["sw_sales_channel_switch_select"] },
+    "sw-system-config": { "members": ["readAll", "actualConfigData", "initialConfigData", "currentSalesChannelId"] },
+    "sw-seo-url-template-card": { "members": ["fetchSeoUrlTemplates", "defaultSeoUrlTemplates", "seoUrlTemplateRepository"] },
+    "sw-settings-seo": { "members": ["isLoading"], "blocks": ["sw_settings_seo_content_inner_redirect"] },
+    "sw-users-permissions-role-detail": { "members": ["roleRepository"] },
+    "sw-users-permissions-role-view-general": { "blocks": ["sw_users_permissions_role_role_view_general_card_view_basic_information_description", "sw_users_permissions_role_role_view_general_card_view_permissions"] },
+    "sw-product-detail": { "members": ["fetchSalesChannelByIds", "getDefaultSalesChannels", "onSave"], "blocks": ["sw_product_detail_actions_save", "sw_product_detail_actions_save_context_menu", "sw_product_detail_content_language_info"] },
+    "sw-category-detail": { "members": ["onSave"], "blocks": ["sw_category_smart_bar_save_category"] },
+    "sw-category-view": { "blocks": ["sw_category_view_column_info"] },
+    "sw-cms-detail": { "members": ["canSave", "onSave", "pageId"], "blocks": ["sw_cms_detail_loader", "sw_cms_detail_page_notification", "sw_cms_detail_toolbar_notification_infos"] },
+    "sw-promotion-v2-detail": { "members": ["savePromotion"] }
+}

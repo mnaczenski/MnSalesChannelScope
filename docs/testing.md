@@ -35,9 +35,12 @@ or point to any shop with `SHOPWARE_DIR=/path/to/shop`. The bootstrap uses `SHOP
 
 `.github/workflows/tests.yml` runs on every push and pull request:
 
-- PHPStan and PHPUnit on PHP 8.2, 8.3 and 8.4;
+- PHPStan and PHPUnit against the lowest and highest installable Shopware 6.7, on PHP 8.2, 8.3 and 8.4;
+- an installed shop for Shopware 6.7.14.0, 6.7.16.0 and trunk (allowed to fail), where `tests/ci/check-admin-overrides.php` checks that every administration internal listed in `tests/ci/admin-overrides.json` still exists;
 - the administration tests on node 20;
 - a JSON check of the preset files.
+
+After adding an administration override, add the component and the methods, computed properties and Twig blocks it builds on to `tests/ci/admin-overrides.json`.
 
 ## Writing tests
 

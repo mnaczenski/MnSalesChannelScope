@@ -29,6 +29,8 @@ Totals Shopware stores across channels (a customer's order count, a product's ra
 
 ## Quick start
 
+Requires Shopware 6.7.14 or newer 6.7 releases and PHP 8.2 or newer ([compatibility policy](docs/compatibility.md)).
+
 1. Install:
 
    ```bash

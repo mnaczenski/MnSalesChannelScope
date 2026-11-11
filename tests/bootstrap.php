@@ -16,7 +16,8 @@ $candidates = array_filter([
 
 foreach ($candidates as $root) {
     $autoload = $root . '/vendor/autoload.php';
-    if (is_file($autoload) && is_dir($root . '/vendor/shopware/core')) {
+    // A shop has Shopware in vendor/, the Shopware repository (CI) in src/Core.
+    if (is_file($autoload) && (is_dir($root . '/vendor/shopware/core') || is_dir($root . '/src/Core'))) {
         $classLoader = require $autoload;
         $classLoader->addPsr4('Mn\\SalesChannelScope\\', dirname(__DIR__) . '/src');
         $classLoader->addPsr4('Mn\\SalesChannelScope\\Tests\\', __DIR__);

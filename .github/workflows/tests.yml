@@ -7,12 +7,16 @@ on:
     pull_request:
 
 jobs:
-    php:
-        name: PHP ${{ matrix.php }}
+    static:
+        name: PHPStan and unit tests (${{ matrix.dependencies }} Shopware 6.7, PHP ${{ matrix.php }})
         runs-on: ubuntu-latest
         strategy:
+            fail-fast: false
             matrix:
-                php: ['8.2', '8.3', '8.4']
+                include:
+                    - { php: '8.2', dependencies: lowest }
+                    - { php: '8.3', dependencies: highest }
+                    - { php: '8.4', dependencies: highest }
         steps:
             - uses: actions/checkout@v4
 
@@ -22,14 +26,38 @@ jobs:
                   extensions: intl, pdo_mysql, zip, gd
                   coverage: none
 
-            - name: Install Shopware and the dev tools
-              run: composer install --no-interaction --no-progress
+            - name: Install Shopware and the dev tools (${{ matrix.dependencies }} versions)
+              run: composer update --no-interaction --no-progress ${{ matrix.dependencies == 'lowest' && '--prefer-lowest' || '' }}
+
+            - name: Shopware version under test
+              run: composer show shopware/core | grep -E '^versions'
 
             - name: PHPStan
               run: composer phpstan -- --no-progress
 
-            - name: PHPUnit
+            - name: Unit tests
               run: composer test
+
+    integration:
+        name: Integration (Shopware ${{ matrix.shopware }})
+        runs-on: ubuntu-latest
+        continue-on-error: ${{ matrix.shopware == 'trunk' }}
+        strategy:
+            fail-fast: false
+            matrix:
+                # lowest version composer.json promises, latest release, next minor (early warning)
+                shopware: ['v6.7.14.0', 'v6.7.16.0', 'trunk']
+        steps:
+            - uses: shopware/github-actions/setup-extension@main
+              with:
+                  extensionName: MnSalesChannelScope
+                  shopwareVersion: ${{ matrix.shopware }}
+                  install: true
+                  # older releases may have known vulnerabilities; fine for a throwaway test shop
+                  allow-insecure-versions: true
+
+            - name: Administration internals the plugin overrides still exist
+              run: php custom/plugins/MnSalesChannelScope/tests/ci/check-admin-overrides.php src/Administration/Resources/app/administration/src
 
     js:
         name: Administration (node)

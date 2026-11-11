@@ -7,7 +7,6 @@
         },
         "preset": {
             "label": "Berechtigungsvorlagen",
-            "apply": "Vorlage hinzufügen: {name}",
             "applied": "Vorlage \"{name}\" zu den Berechtigungen hinzugefügt. Speichern Sie die Rolle, um sie zu übernehmen.",
             "names": {
                 "orders": "Bestellverwaltung",
@@ -18,13 +17,16 @@
                 "marketing": "Marketing"
             },
             "help": {
-                "orders": "Fügt alles hinzu, was das Bestellmodul braucht, auch Dokumente (erstellen, hochladen, herunterladen, versenden, löschen), Erstattungen, Rabatte und Zahlungsstatus. Bestehende Berechtigungen bleiben. Hinweis: Dokumente löschen erfordert die Berechtigung \"Löschen\" der Dokument-Einstellungen, die auch das Löschen von Dokumentvorlagen erlaubt.",
-                "products": "Fügt alles hinzu, was das Produktmodul braucht, auch Medien, Erlebniswelten-Layouts, Bewertungen und die Commercial-Erweiterungen der Produktseite (Bundles, Bewertungszusammenfassungen). Außerdem das Bewertungsmodul (Kataloge → Bewertungen): Bewertungen der eigenen Verkaufskanäle ansehen, freigeben, bearbeiten und löschen. Bestehende Berechtigungen bleiben.",
-                "categories": "Fügt alles hinzu, was das Kategoriemodul braucht, auch Layouts, SEO-Einstellungen und Produktzuordnungen. Bestehende Berechtigungen bleiben.",
-                "settings": "Fügt die eigenen Verkaufskanäle der Rolle hinzu (Verkaufskanäle im Hauptmenü) und die Einstellungsseiten mit Verkaufskanal-Auswahl (Grundinformationen, Warenkorb, Login & Registrierung, Newsletter, Sitemap, SEO-URL-Templates), nur für die eigenen Verkaufskanäle der Rolle. Einstellungen für alle Kanäle, die übrigen Einstellungsseiten sowie das Anlegen und Löschen von Verkaufskanälen bleiben unbeschränkten Benutzern vorbehalten. Bestehende Berechtigungen bleiben.",
-                "cms": "Fügt alles hinzu, was das Erlebniswelten-Modul braucht (Layouts ansehen, bearbeiten, anlegen, löschen, mit Medien). Beschränkte Benutzer bearbeiten die Layouts ihrer eigenen Verkaufskanäle; geteilte und gesperrte Layouts sind schreibgeschützt. Bestehende Berechtigungen bleiben.",
-                "marketing": "Fügt Promotions und Erlebniswelten hinzu, für die eigenen Verkaufskanäle der Rolle: Promotions (Rabatte, Codes, Bedingungen) und Layouts ansehen, bearbeiten, anlegen und löschen; mit anderen Kanälen geteilte sind schreibgeschützt. Bestehende Berechtigungen bleiben."
-            }
+                "orders": "Bestellungen mit Dokumenten, Erstattungen, Rabatten und Zahlungsstatus. Dokumente löschen erlaubt auch das Löschen von Dokumentvorlagen.",
+                "products": "Produkte mit Medien, Layouts, Bundles und Bewertungszusammenfassungen, dazu das Bewertungsmodul.",
+                "categories": "Kategorien mit Layouts, SEO-Einstellungen und Produktzuordnungen.",
+                "marketing": "Promotions und Erlebniswelten. Mit anderen Verkaufskanälen geteilte sind schreibgeschützt.",
+                "cms": "Erlebniswelten-Layouts mit Medien. Mit anderen Verkaufskanälen geteilte Layouts sind schreibgeschützt.",
+                "settings": "Die Verkaufskanäle der Rolle und die Einstellungsseiten mit Verkaufskanal-Auswahl (Grundinformationen, Warenkorb, Login, Newsletter, Sitemap, SEO). Einstellungen für alle Kanäle bleiben Administratoren vorbehalten."
+            },
+            "subtitle": "Jede Vorlage fügt den Berechtigungen unten alles hinzu, was ein Modul braucht, auch Berechtigungen, die Shopware unter anderen Modulen führt. Es wird nichts entfernt. Speichern Sie die Rolle, um die Änderungen zu übernehmen.",
+            "add": "Hinzufügen",
+            "added": "Hinzugefügt"
         },
         "product": {
             "readOnlyTitle": "Geteiltes Produkt: nur lesen",

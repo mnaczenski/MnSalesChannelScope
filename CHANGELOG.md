@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.1
+
+- Role page: the permission presets have their own card (*Permission presets*) between the basic information and the permission grid, one row per preset with a short description and an *Add* button that shows *Added* once the preset's roles are on the role. The sales channel picker stays in the basic information.
+
 ## 0.10.0
 
 - Promotions: a promotion belongs to the sales channels it is assigned to. Limited users see promotions of their channels and change those assigned to their channels only; discounts (with prices and rules), set groups, individual codes, conditions, persona customers and translations follow their promotion. New promotions need an assignment to one of their channels in the same save; assignments only to their channels. Shopware's form for a new promotion has no sales channels, so a limited user's new promotion starts with all of their channels (`sw-promotion-v2-detail`). Replacing or adding individual codes (`/api/_action/promotion/codes/...`, which deletes the old codes with plain SQL) only for such promotions (`PromotionGuardSubscriber`).

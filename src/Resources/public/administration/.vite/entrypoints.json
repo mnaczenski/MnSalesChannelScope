@@ -3,11 +3,11 @@
   "entryPoints": {
     "mn-sales-channel-scope": {
       "css": [
-        "/bundles/mnsaleschannelscope/administration/assets/mn-sales-channel-scope-zPugLTQz.css"
+        "/bundles/mnsaleschannelscope/administration/assets/mn-sales-channel-scope-CDf0hy76.css"
       ],
       "dynamic": [],
       "js": [
-        "/bundles/mnsaleschannelscope/administration/assets/mn-sales-channel-scope-BZ_nhNAd.js"
+        "/bundles/mnsaleschannelscope/administration/assets/mn-sales-channel-scope-CzOVAe92.js"
       ],
       "legacy": false,
       "preload": []

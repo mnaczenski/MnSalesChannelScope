@@ -33,6 +33,14 @@ Shopware.Component.override('sw-users-permissions-role-view-general', {
     },
 
     methods: {
+        /** All of the preset's admin roles are already on the role. */
+        mnPresetApplied(preset) {
+            const privileges = this.role?.privileges ?? [];
+
+            return preset.roles.every((key) => privileges.includes(key))
+                && Object.keys(preset.additionalPrivileges).every((key) => !Array.isArray(this.detailedPrivileges) || this.detailedPrivileges.includes(key));
+        },
+
         onMnSalesChannelsChange(collection) {
             this.role.extensions.mnSalesChannels = collection;
         },

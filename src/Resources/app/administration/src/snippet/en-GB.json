@@ -7,7 +7,6 @@
         },
         "preset": {
             "label": "Permission presets",
-            "apply": "Add preset: {name}",
             "applied": "Preset \"{name}\" added to the permissions. Save the role to keep it.",
             "names": {
                 "orders": "Order management",
@@ -18,13 +17,16 @@
                 "marketing": "Marketing"
             },
             "help": {
-                "orders": "Adds everything the order module needs, including documents (create, upload, download, send, delete), refunds, discounts and payment states. Existing permissions stay. Note: deleting documents needs the Documents settings permission \"delete\", which also allows deleting document settings.",
-                "products": "Adds everything the product module needs, including media, Shopping Experience layouts, reviews and the Commercial extensions on the product page (bundles, review summaries). It also adds the Reviews module (Catalogue → Reviews): view, approve, edit and delete the reviews of the role's sales channels. Existing permissions stay.",
-                "categories": "Adds everything the category module needs, including layouts, SEO settings and product assignments. Existing permissions stay.",
-                "settings": "Adds the role's own sales channels (Sales Channels in the main menu) and the settings pages with a sales channel switch (basic information, cart, login & registration, newsletter, sitemap, SEO URL templates), for the role's own sales channels only. Settings for all channels, the other settings pages, and creating or deleting sales channels stay with unrestricted users. Existing permissions stay.",
-                "cms": "Adds everything the Shopping Experiences module needs (view, edit, create, delete layouts, with media). Limited users edit the layouts of their own sales channels; shared and locked layouts are read-only. Existing permissions stay.",
-                "marketing": "Adds Promotions and Shopping Experiences, for the role's own sales channels: promotions (discounts, codes, conditions) and layouts can be viewed, edited, created and deleted; those shared with other channels are read-only. Existing permissions stay."
-            }
+                "orders": "Orders with documents, refunds, discounts and payment states. Deleting documents also allows deleting document settings.",
+                "products": "Products with media, layouts, bundles and review summaries, plus the Reviews module.",
+                "categories": "Categories with layouts, SEO settings and product assignments.",
+                "marketing": "Promotions and Shopping Experiences. Those shared with other sales channels are read-only.",
+                "cms": "Shopping Experience layouts with media. Layouts shared with other sales channels are read-only.",
+                "settings": "The role's sales channels and the settings pages with a sales channel switch (basic information, cart, login, newsletter, sitemap, SEO). Settings for all channels stay with administrators."
+            },
+            "subtitle": "Each preset adds everything a module needs to the permissions below, including permissions Shopware lists under other modules. Nothing is removed. Save the role to keep the changes.",
+            "add": "Add",
+            "added": "Added"
         },
         "product": {
             "readOnlyTitle": "Shared product: read-only",

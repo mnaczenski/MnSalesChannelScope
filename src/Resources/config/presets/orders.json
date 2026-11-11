@@ -37,7 +37,8 @@
         "order_transaction_capture_refund_position:create": "refund positions",
         "order_transaction_capture_refund_position:update": "refund positions",
         "order_transaction_capture_refund_position:delete": "refund positions",
-        "order_line_item_download:read": "downloads of digital products"
+        "order_line_item_download:read": "downloads of digital products",
+        "version_commit:delete": "Leaving an order without saving discards its draft version; since Shopware 6.7.16 that also deletes the version's commits, which no admin role allows"
     },
     "expandedPrivileges": [
         "api_proxy_switch-customer",

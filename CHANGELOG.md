@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.2
+
+- Order management preset: adds `version_commit:delete`. Leaving an order in edit mode without saving discards its draft version; since Shopware 6.7.16 that also deletes the version's commits with the user's permissions, which no admin role grants, so every non-admin user got "Missing privilege: version_commit:delete".
+
 ## 0.11.1
 
 - Admin search with OpenSearch (`SHOPWARE_ADMIN_ES_ENABLED`): the global search asked the search index for the best matches of all sales channels and filtered them afterwards, so a limited user's own matches could be missing and the hit counts included other channels. Limited users now search the database (`sw-search-bar`), and `POST /api/_admin/es-search` refuses them (`AdminSearchGuardSubscriber`, `MN_CHANNEL_SCOPE__ROUTE_DENIED`). Unrestricted users keep OpenSearch.

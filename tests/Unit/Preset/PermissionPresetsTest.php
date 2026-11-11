@@ -31,6 +31,8 @@ class PermissionPresetsTest extends TestCase
             static::assertContains($key, $privileges);
         }
         // API routes the order module calls
+        // discarding an order's draft version (leaving the page without saving) deletes its commits
+        static::assertContains('version_commit:delete', $privileges);
         foreach (['order:update', 'order_transaction:update', 'order_delivery:update', 'order_address:update', 'document:read', 'document:create', 'document:update', 'document:delete', 'document_file:create', 'order_refund.editor'] as $privilege) {
             static::assertContains($privilege, $privileges);
         }

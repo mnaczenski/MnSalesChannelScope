@@ -30,6 +30,7 @@ A preset works with and without sales channels on the role; together with sales 
 | Change the payment status | `order_transaction:update` | not part of *Orders → edit* |
 | Refund | capture and refund position privileges | partly missing |
 | Document files (document generation v2) | `document_file:*` | in no role |
+| Leave an order without saving (discard the draft version) | `version:delete`, `version_commit:delete` | `version_commit:delete` is in no role; since Shopware 6.7.16 discarding a version deletes its commits with the user's permissions |
 
 `document.deleter` also allows deleting document settings in *Settings → Documents*.
 

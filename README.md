@@ -2,7 +2,7 @@
 
 Limit admin roles to sales channels. A user whose role is limited to the *Austria* storefront sees and changes only what belongs to that channel: its orders, customers, products, categories, layouts, promotions and settings. Lists, detail pages, search, the dashboard and the Admin API all behave as if the other channels didn't exist; records shared with other channels are read-only.
 
-> **Status: proof of concept (0.11).** Built for Shopware 6.7 to show how far sales channel permissions go with a plugin and without core changes. Not for production use yet; see [limitations](#limitations).
+> **Status: proof of concept (0.12).** Built for Shopware 6.7 to show how far sales channel permissions go with a plugin and without core changes. Not for production use yet; see [limitations](#limitations).
 
 [![Tests](https://github.com/mnaczenski/MnSalesChannelScope/actions/workflows/tests.yml/badge.svg)](https://github.com/mnaczenski/MnSalesChannelScope/actions/workflows/tests.yml)
 
@@ -118,6 +118,8 @@ composer test               # PHPUnit
 composer phpstan            # PHPStan, level 8
 composer test:js            # administration services (node 20+)
 ```
+
+Against a running shop, `tests/acceptance/leak-check.php` logs in as a limited user and looks for another channel's records ([leak check](docs/testing.md#leak-check)).
 
 After changing the administration sources, build them in a Shopware installation (`bin/build-administration.sh`) and commit the files in `src/Resources/public`. See [docs/testing.md](docs/testing.md).
 

@@ -41,6 +41,7 @@ use Shopware\Core\Content\LandingPage\Aggregate\LandingPageTranslation\LandingPa
 use Shopware\Core\Content\LandingPage\Aggregate\LandingPageSalesChannel\LandingPageSalesChannelDefinition;
 use Shopware\Core\Content\Product\SalesChannel\Sorting\ProductSortingDefinition;
 use Shopware\Core\Framework\DataAbstractionLayer\Write\EntityWriteGatewayInterface;
+use Shopware\Core\Checkout\Customer\Aggregate\CustomerRecovery\CustomerRecoveryDefinition;
 use Shopware\Core\Test\Stub\DataAbstractionLayer\StaticDefinitionInstanceRegistry;
 use Symfony\Component\Validator\Validation;
 
@@ -55,6 +56,7 @@ class WriteGuardSubscriberTest extends TestCase
     private const CUSTOMER_EN = '0190ffffffffffffffffffffffffff02';
     private const CUSTOMER_EN_BOUND_DE = '0190ffffffffffffffffffffffffff03';
     private const ADDRESS_EN = '0190999999999999999999999999ff02';
+    private const RECOVERY_EN = '0190999999999999999999999999ff03';
     private const PRODUCT_DE = '0190777777777777777777777777aa01';
     private const PRODUCT_SHARED = '0190777777777777777777777777aa02';
     private const PRODUCT_EN = '0190777777777777777777777777aa03';
@@ -143,6 +145,17 @@ class WriteGuardSubscriberTest extends TestCase
         $customer = $this->insert($this->definition(CustomerDefinition::class), $customerId, ['sales_channel_id' => Uuid::fromHexToBytes(Ids::DE)]);
         $address = $this->insert($this->definition(CustomerAddressDefinition::class), Uuid::randomHex(), ['customer_id' => Uuid::fromHexToBytes($customerId)]);
         static::assertSame([], $this->denied([$customer, $address]), 'a new customer with its addresses');
+    }
+
+    public function testRecoveryLinksFollowTheirCustomer(): void
+    {
+        static::assertSame(['customer_recovery'], $this->denied([$this->update($this->definition(CustomerRecoveryDefinition::class), self::RECOVERY_EN, ['hash' => 'x'])]));
+        static::assertSame(['customer_recovery'], $this->denied([
+            $this->insert($this->definition(CustomerRecoveryDefinition::class), Uuid::randomHex(), ['customer_id' => Uuid::fromHexToBytes(self::CUSTOMER_EN)]),
+        ]));
+        static::assertSame([], $this->denied([
+            $this->insert($this->definition(CustomerRecoveryDefinition::class), Uuid::randomHex(), ['customer_id' => Uuid::fromHexToBytes(self::CUSTOMER_DE)]),
+        ]));
     }
 
     public function testSalesChannelsAndRoleChannelsAreProtected(): void
@@ -318,6 +331,7 @@ class WriteGuardSubscriberTest extends TestCase
                 self::CUSTOMER_EN_BOUND_DE => ['salesChannelId' => Ids::EN, 'boundSalesChannelId' => Ids::DE],
             ],
             addresses: [self::ADDRESS_EN => self::CUSTOMER_EN],
+            parents: [self::RECOVERY_EN => self::CUSTOMER_EN],
             products: [self::PRODUCT_DE => [Ids::DE], self::PRODUCT_SHARED => [Ids::DE, Ids::EN], self::PRODUCT_EN => [Ids::EN]],
             productChildren: [self::PRICE_SHARED => self::PRODUCT_SHARED],
             channelRecords: [
@@ -355,7 +369,7 @@ class WriteGuardSubscriberTest extends TestCase
         static $registry = null;
         /** @var list<class-string<EntityDefinition>> $definitions Commercial's review summary definition is optional */
         $definitions = [
-            OrderDefinition::class, OrderLineItemDefinition::class, CustomerDefinition::class, CustomerAddressDefinition::class, SalesChannelDefinition::class, AclRoleSalesChannelDefinition::class, ProductDefinition::class, ProductPriceDefinition::class, ProductVisibilityDefinition::class, ProductReviewDefinition::class, SystemConfigDefinition::class, ProductSortingDefinition::class, LandingPageDefinition::class, LandingPageTranslationDefinition::class, LandingPageSalesChannelDefinition::class, SalesChannelCountryDefinition::class, SalesChannelAnalyticsDefinition::class, RuleDefinition::class, RuleConditionDefinition::class, PaymentMethodDefinition::class,
+            OrderDefinition::class, OrderLineItemDefinition::class, CustomerDefinition::class, CustomerAddressDefinition::class, CustomerRecoveryDefinition::class, SalesChannelDefinition::class, AclRoleSalesChannelDefinition::class, ProductDefinition::class, ProductPriceDefinition::class, ProductVisibilityDefinition::class, ProductReviewDefinition::class, SystemConfigDefinition::class, ProductSortingDefinition::class, LandingPageDefinition::class, LandingPageTranslationDefinition::class, LandingPageSalesChannelDefinition::class, SalesChannelCountryDefinition::class, SalesChannelAnalyticsDefinition::class, RuleDefinition::class, RuleConditionDefinition::class, PaymentMethodDefinition::class,
             ...(class_exists(ProductReviewSummaryDefinition::class) ? [ProductReviewSummaryDefinition::class] : []),
         ];
         $registry ??= new StaticDefinitionInstanceRegistry(

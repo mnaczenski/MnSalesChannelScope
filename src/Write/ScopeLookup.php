@@ -81,6 +81,23 @@ interface ScopeLookup
     public function configKey(array $primaryKey): ?string;
 
     /**
+     * The parent id (bytes) a stored record points to through a column, null
+     * when the record doesn't exist. Any version of the record counts.
+     */
+    public function parentOf(string $entity, string $column, string $id): ?string;
+
+    /**
+     * Of the given orders, deliveries and transactions (hex ids), those whose
+     * order belongs to one of the sales channels (hex).
+     *
+     * @param list<string> $ids
+     * @param list<string> $salesChannelIds
+     *
+     * @return list<string>
+     */
+    public function ownStateRecords(array $ids, array $salesChannelIds): array;
+
+    /**
      * Sales channels (hex) of a stored landing page, null when it doesn't exist.
      *
      * @return list<string>|null

@@ -355,8 +355,15 @@ class WriteGuardSubscriber implements EventSubscriberInterface
             return null;
         }
 
-        if ($entity === 'customer_address') {
-            if (!$insert && !$this->ownsCustomer($this->lookup->customerChannelsOfAddress($primaryKey), $allowed)) {
+        if ($entity === 'customer_recovery') {
+            $customerId = $insert ? null : $this->lookup->parentOf('customer_recovery', 'customer_id', (string) ($primaryKey['id'] ?? ''));
+            if (!$insert && ($customerId === null || !$this->ownsCustomer($this->lookup->customerChannels($customerId), $allowed))) {
+                return 'its customer is registered in another sales channel';
+            }
+        }
+
+        if ($entity === 'customer_address' || $entity === 'customer_recovery') {
+            if ($entity === 'customer_address' && !$insert && !$this->ownsCustomer($this->lookup->customerChannelsOfAddress($primaryKey), $allowed)) {
                 return 'its customer is registered in another sales channel';
             }
             if (\array_key_exists('customer_id', $payload)) {

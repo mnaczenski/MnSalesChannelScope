@@ -2,6 +2,7 @@
 
 namespace Mn\SalesChannelScope\Write;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Mn\SalesChannelScope\Scope\ScopeRules;
 use Shopware\Core\Defaults;
@@ -169,6 +170,35 @@ class DbalScopeLookup implements ScopeLookup
             'SELECT LOWER(HEX(sales_channel_id)) FROM landing_page_sales_channel WHERE landing_page_id = :id AND landing_page_version_id = :v',
             ['id' => $landingPageId, 'v' => $versionId],
         )));
+    }
+
+    public function ownStateRecords(array $ids, array $salesChannelIds): array
+    {
+        if ($ids === [] || $salesChannelIds === []) {
+            return [];
+        }
+
+        $own = $this->connection->fetchFirstColumn(
+            'SELECT LOWER(HEX(o.id)) FROM `order` o WHERE o.id IN (:ids) AND o.sales_channel_id IN (:channels)
+             UNION SELECT LOWER(HEX(d.id)) FROM order_delivery d INNER JOIN `order` o ON o.id = d.order_id AND o.version_id = d.order_version_id
+                WHERE d.id IN (:ids) AND o.sales_channel_id IN (:channels)
+             UNION SELECT LOWER(HEX(t.id)) FROM order_transaction t INNER JOIN `order` o ON o.id = t.order_id AND o.version_id = t.order_version_id
+                WHERE t.id IN (:ids) AND o.sales_channel_id IN (:channels)',
+            ['ids' => Uuid::fromHexToBytesList($ids), 'channels' => Uuid::fromHexToBytesList($salesChannelIds)],
+            ['ids' => ArrayParameterType::BINARY, 'channels' => ArrayParameterType::BINARY],
+        );
+
+        return array_values(array_intersect(array_map('strtolower', $ids), $own));
+    }
+
+    public function parentOf(string $entity, string $column, string $id): ?string
+    {
+        if (!preg_match('/^[a-z_]+$/', $entity) || !preg_match('/^[a-z_]+$/', $column)) {
+            return null;
+        }
+        $value = $this->connection->fetchOne(\sprintf('SELECT `%s` FROM `%s` WHERE id = :id LIMIT 1', $column, $entity), ['id' => $id]);
+
+        return \is_string($value) ? $value : null;
     }
 
     public function configKey(array $primaryKey): ?string

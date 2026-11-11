@@ -5,6 +5,8 @@ parameters:
         - tests
     excludePaths:
         - src/Resources
+        # a standalone script run against a shop (php tests/acceptance/leak-check.php)
+        - tests/acceptance
     bootstrapFiles:
         - tests/bootstrap.php
     treatPhpDocTypesAsCertain: false

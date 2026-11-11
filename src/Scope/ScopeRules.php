@@ -69,6 +69,7 @@ class ScopeRules implements ReadRule
         'product_cross_selling',
         'product_download',
         'product_search_keyword',
+        'product_translation',
     ];
 
     /**
@@ -112,7 +113,7 @@ class ScopeRules implements ReadRule
             $entity === 'order' => new EqualsAnyFilter('salesChannelId', $salesChannelIds),
             \in_array($entity, self::ORDER_CHILDREN, true) => new EqualsAnyFilter('order.salesChannelId', $salesChannelIds),
             $entity === 'customer' => $this->customer('', $salesChannelIds),
-            $entity === 'customer_address' => $this->customer('customer.', $salesChannelIds),
+            $entity === 'customer_address', $entity === 'customer_recovery' => $this->customer('customer.', $salesChannelIds),
             $entity === 'product' => $this->product('', $salesChannelIds),
             \in_array($entity, self::PRODUCT_CHILDREN, true) => $this->product('product.', $salesChannelIds),
             $entity === 'product_review' => new EqualsAnyFilter('salesChannelId', $salesChannelIds),

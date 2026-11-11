@@ -23,9 +23,13 @@ use Mn\SalesChannelScope\Scope\SettingsDomains;
 use Mn\SalesChannelScope\Rule\ChannelColumnLookup;
 use Mn\SalesChannelScope\Rule\DbalChannelColumnLookup;
 use Mn\SalesChannelScope\Rule\SalesChannelColumnRule;
+use Mn\SalesChannelScope\Rule\OrderDescendantRule;
+use Mn\SalesChannelScope\Rule\ParentChannelRule;
 use Mn\SalesChannelScope\Tags;
 use Mn\SalesChannelScope\Subscriber\WriteRuleSubscriber;
 use Mn\SalesChannelScope\Subscriber\AdminSearchGuardSubscriber;
+use Mn\SalesChannelScope\Subscriber\ChannelParameterGuardSubscriber;
+use Mn\SalesChannelScope\Subscriber\StateHistoryGuardSubscriber;
 use Mn\SalesChannelScope\Subscriber\ChannelTotalsSubscriber;
 use Mn\SalesChannelScope\Subscriber\PromotionGuardSubscriber;
 use Mn\SalesChannelScope\Promotion\DbalPromotionSource;
@@ -94,6 +98,22 @@ return static function (ContainerConfigurator $configurator): void {
         ->tag(Tags::READ_RULE)
         ->tag(Tags::WRITE_RULE);
 
+    // Delivery positions, downloads, captures, refunds, document files follow their order.
+    $services->set(OrderDescendantRule::class)
+        ->args([service(ScopeLookup::class)])
+        ->tag(Tags::READ_RULE)
+        ->tag(Tags::WRITE_RULE);
+
+    // Wishlists belong to the sales channel they were created in, their products follow them.
+    $services->set('mn_channel_scope.rule.customer_wishlist', SalesChannelColumnRule::class)
+        ->args(['customer_wishlist', service(ChannelColumnLookup::class)])
+        ->tag(Tags::READ_RULE)
+        ->tag(Tags::WRITE_RULE);
+    $services->set('mn_channel_scope.rule.customer_wishlist_product', ParentChannelRule::class)
+        ->args(['customer_wishlist_product', 'wishlist', 'customer_wishlist_id', 'customer_wishlist', service(ChannelColumnLookup::class)])
+        ->tag(Tags::READ_RULE)
+        ->tag(Tags::WRITE_RULE);
+
     $services->set(CmsGuardSubscriber::class)
         ->args([service(ChannelScope::class), service(CmsPages::class)])
         ->tag('kernel.event_subscriber');
@@ -130,6 +150,15 @@ return static function (ContainerConfigurator $configurator): void {
 
     $services->set(AdminSearchGuardSubscriber::class)
         ->args([service(ChannelScope::class)])
+        ->tag('kernel.event_subscriber');
+
+    $services->set(StateHistoryGuardSubscriber::class)
+        ->args([service(ChannelScope::class), service(ScopeLookup::class)])
+        ->tag('kernel.event_subscriber')
+        ->tag(Tags::WRITE_RULE);
+
+    $services->set(ChannelParameterGuardSubscriber::class)
+        ->args([service(ChannelScope::class), service('customer.repository')])
         ->tag('kernel.event_subscriber');
 
     $services->set(ThemeGuardSubscriber::class)

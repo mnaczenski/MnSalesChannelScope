@@ -4,6 +4,7 @@ namespace Mn\SalesChannelScope\Tests\Unit\Subscriber;
 
 use Mn\SalesChannelScope\Scope\ScopeRules;
 use Mn\SalesChannelScope\Subscriber\ReadFilterSubscriber;
+use Mn\SalesChannelScope\Subscriber\WriteGuardSubscriber;
 use Mn\SalesChannelScope\Tests\Ids;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -187,6 +188,15 @@ class ReadFilterSubscriberTest extends TestCase
         static::assertInstanceOf(OrFilter::class, $filter);
         static::assertSame(['product.visibilities.salesChannelId', 'product.parent.visibilities.salesChannelId'], $this->fields($filter));
         static::assertEquals(new EqualsAnyFilter('salesChannelId', [Ids::DE]), (new ScopeRules())->readFilter('product_review', [Ids::DE]));
+    }
+
+    public function testEveryGuardedProductDetailIsAlsoFiltered(): void
+    {
+        // mapping tables have no search route of their own
+        $mappings = ['product_category', 'product_option', 'product_property', 'product_tag', 'product_custom_field_set'];
+        foreach (array_diff(WriteGuardSubscriber::PRODUCT_WRITE_CHILDREN, $mappings) as $entity) {
+            static::assertNotNull((new ScopeRules())->readFilter($entity, [Ids::DE]), $entity . ' is guarded on write but readable for all channels');
+        }
     }
 
     public function testEntitiesWithoutARuleStayUntouched(): void

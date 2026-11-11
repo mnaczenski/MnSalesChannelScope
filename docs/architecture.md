@@ -40,8 +40,11 @@ The principle: **with a scope, you only see what is connected to your sales chan
 |---|---|---|---|
 | Orders | `order.salesChannelId`, exactly one | its channel is the user's | the same, and it can't move to another channel |
 | Order details (line items, deliveries, transactions, addresses, order customer, documents) | through their order | as their order | as their order |
+| Their details (delivery positions, downloads, payment captures, refunds and refund positions, document files) | through the order detail they belong to | as their order | as their order |
+| State transitions (order, delivery and payment status history) | the record they point to, by id only | of the user's orders | new ones for the user's orders; never changed |
 | Customers | `salesChannelId` (registered in), optional `boundSalesChannelId` | registered in, bound to **or ordered in** one of the user's channels | registered in or bound to one of the user's channels |
-| Customer addresses | through their customer | as their customer | as their customer |
+| Customer addresses, password recovery links | through their customer | as their customer | as their customer |
+| Wishlists and their products | `salesChannelId` of the wishlist | its channel is the user's | the same |
 | Sales channels | the channel itself | the user's channels | update only; never create or delete |
 | What a sales channel offers (countries, currencies, languages, payment and shipping methods, translations, theme assignment), analytics, product comparison, files | `sales_channel_id`, or the channel that uses it (analytics) | of the user's channels | of the user's channels |
 | Products | `product_visibility`; variants use their parent's | sold in one of the user's channels | sold only in the user's channels; the user's own visibilities can always change |
@@ -101,8 +104,11 @@ The built-in rules are in `ScopeRules`:
 | `sales_channel` | `id IN (user's channels)` |
 | `order` | `salesChannelId IN (…)` |
 | order details | `order.salesChannelId IN (…)` |
+| their details (`OrderDescendantRule`) | through the order detail, e.g. `orderDelivery.order.salesChannelId IN (…)`; refund positions through `orderLineItem.order.` |
+| `state_machine_history` (`StateHistoryGuardSubscriber`) | of the `referencedId`s a search asks for, only those of orders, deliveries and transactions of the user's channels; nothing without them |
 | `customer` | `salesChannelId IN (…) OR boundSalesChannelId IN (…) OR orderCustomers.order.salesChannelId IN (…)` |
-| `customer_address` | the customer rule through `customer.` |
+| `customer_address`, `customer_recovery` | the customer rule through `customer.` |
+| `customer_wishlist`, `customer_wishlist_product` | `salesChannelId IN (…)`, products through `wishlist.` (`SalesChannelColumnRule`, `ParentChannelRule`) |
 | `product` | `visibilities.salesChannelId IN (…) OR parent.visibilities.salesChannelId IN (…)` |
 | product details | the product rule through `product.` |
 | `product_review`, `product_review_summary`, `main_category` | `salesChannelId IN (…)` |
@@ -126,7 +132,7 @@ Associations need extra care: Shopware loads to-many associations (a customer's 
 | `WriteGuardSubscriber` | orders, customers, sales channels and what they offer, the role mapping, products, reviews, categories, landing pages, configuration values, themes, rules, payment and shipping methods |
 | `CmsGuardSubscriber` | layouts, their sections, blocks, slots and translations; layouts assigned to categories, products, landing pages |
 | `PromotionGuardSubscriber` | promotions and everything that belongs to them |
-| `WriteRuleSubscriber` | every tagged write rule (newsletter recipients, other plugins' entities) |
+| `WriteRuleSubscriber` | every tagged write rule: order details' details, wishlists, state transitions, newsletter recipients, other plugins' entities |
 
 Records inserted in the same write (an order with its line items, a promotion with its sales channel assignment) are checked against each other, so creating them together works. Stored values are read with plain SQL lookups (`DbalScopeLookup`, `DbalCmsUsageSource`, `DbalPromotionSource`, `DbalChannelColumnLookup`).
 
@@ -148,6 +154,9 @@ Some core endpoints check or change records without the events the read filter a
 | Promotion codes (`/api/_action/promotion/codes/replace-individual`, `add-individual`) | replacing deletes the old codes with plain SQL first | `PromotionGuardSubscriber`: own promotions only |
 | Theme assignment and configuration (`/api/_action/theme/...`) | the assignment writes the pending theme with plain SQL and may switch asynchronously; configuration routes check no privilege | `ThemeGuardSubscriber` |
 | Dashboard turnover | plain SQL | `ScopedOrderAmountService` |
+| Product stream preview (`POST /api/_admin/product-stream-preview/{salesChannelId}`), sales channel files such as robots.txt (`/api/_action/sales-channel-file/{fileFamily}/{salesChannelId}`, list, detail, preview), Advanced Search preview (Commercial, `GET /api/_action/preview-search/search?salesChannelId=`) | work in a storefront context of the given channel, outside the read filter: products, files and search results of any channel | `ChannelParameterGuardSubscriber`: own channels only |
+| Switch the customer of an admin order cart (`PATCH /api/_proxy/switch-customer`) | loads the customer in the storefront context: the cart showed another channel's customer with their addresses | `ChannelParameterGuardSubscriber`: own channel, and a customer the user can see |
+| State transition history (`/api/search/state-machine-history`) | points to orders, deliveries and transactions by id, without an association a filter could follow; carries the user and an internal comment | `StateHistoryGuardSubscriber`, see [read filter](#read-filter) |
 | Admin search (`POST /api/_admin/search`), order state transitions, Store API proxy, admin order creation | none needed: they read through the repositories | – |
 | Import/Export | the presets don't grant it; export jobs run with the user's context, so the read filter applies (not tested end to end) | – |
 | Global search with OpenSearch (`POST /api/_admin/es-search`, `SHOPWARE_ADMIN_ES_ENABLED`) | asks the index for the best matches of all channels and filters them afterwards: a limited user's own matches can be crowded out, and the hit counts include other channels | `AdminSearchGuardSubscriber` refuses limited users (`MN_CHANNEL_SCOPE__ROUTE_DENIED`); their search bar uses the database search (`sw-search-bar`) |
@@ -218,6 +227,7 @@ The screens get the scope from `GET /api/_action/mn-channel-scope/me` (`{ restri
 | Category tree actions, product bulk edit, variant generator, list inline edit | not marked read-only; refused on save | mark them in the UI |
 | Category child counts | an expand arrow for categories whose children are all hidden | count visible children |
 | Product cross-selling assigned products | not checked | check through their cross-selling |
+| Records with an id to another record but no association (like state transitions) | not found by the [leak check](testing.md#leak-check)'s sweep; each needs its own guard | review new core entities per release |
 | Settings pages beyond the preset (listing, documents, number ranges, plugin configuration) | only for unrestricted users | open them one by one where they are per channel |
 | Filtering and sorting by customer or product totals | uses Shopware's totals across all channels | a per-channel totals table |
 | Many-to-one joins | a joined record is shown where another record references it (a review's customer) | accept the label; the record itself stays hidden |
@@ -230,7 +240,8 @@ The screens get the scope from `GET /api/_action/mn-channel-scope/me` (`{ restri
 src/
   Scope/       ChannelScope, RoleChannelLoader (who is limited), ScopeRules (built-in read rules),
                ConfigRules, SettingsDomains (configuration values)
-  Rule/        ReadRule, WriteRule, WriteScope, SalesChannelColumnRule: the extension point
+  Rule/        ReadRule, WriteRule, WriteScope, SalesChannelColumnRule, ParentChannelRule: the extension point;
+               OrderDescendantRule (delivery positions, captures, refunds, …)
   Subscriber/  read filter, write guards, route guards, totals
   Category/    CategoryTrees: which categories belong to which channels
   Cms/         CmsPages: which channels a layout belongs to
@@ -244,4 +255,6 @@ src/
   Resources/app/administration/      administration extensions and services
 bin/expand-preset.js                 regenerates a preset's expanded privileges
 tests/Unit/, tests/js/               unit tests (no database needed)
+tests/acceptance/leak-check.php      leak check against a running shop
+tests/ci/                            CI: test data for the leak check, administration override check
 ```

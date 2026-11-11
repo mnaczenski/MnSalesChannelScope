@@ -24,6 +24,7 @@ final class StaticScopeLookup implements ScopeLookup
      * @param array<string, list<string>> $landingPages landing page id => sales channel ids
      * @param array<string, list<string>> $analytics analytics id => sales channel ids
      * @param array<string, list<string>> $themes theme id => sales channel ids
+     * @param array<string, string> $parents record id => parent id (descendants of order details)
      */
     public function __construct(
         private readonly array $orders = [],
@@ -39,6 +40,7 @@ final class StaticScopeLookup implements ScopeLookup
         private readonly array $landingPages = [],
         private readonly array $analytics = [],
         private readonly array $themes = [],
+        private readonly array $parents = [],
     ) {
     }
 
@@ -87,6 +89,26 @@ final class StaticScopeLookup implements ScopeLookup
     public function landingPageChannels(string $landingPageId, string $versionId): ?array
     {
         return $this->landingPages[Uuid::fromBytesToHex($landingPageId)] ?? null;
+    }
+
+    public function ownStateRecords(array $ids, array $salesChannelIds): array
+    {
+        $own = [];
+        foreach ($ids as $id) {
+            $order = $this->orders[$id] ?? (isset($this->children[$id]) ? $this->orders[$this->children[$id]] ?? null : null);
+            if ($order !== null && \in_array($order, $salesChannelIds, true)) {
+                $own[] = $id;
+            }
+        }
+
+        return $own;
+    }
+
+    public function parentOf(string $entity, string $column, string $id): ?string
+    {
+        $parent = $this->parents[Uuid::fromBytesToHex($id)] ?? null;
+
+        return $parent === null ? null : Uuid::fromHexToBytes($parent);
     }
 
     public function configKey(array $primaryKey): ?string

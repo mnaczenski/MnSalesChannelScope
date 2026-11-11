@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.12.0
+
+Security review: every Admin API route and every entity checked for ways around the scope.
+
+- **Order details' details:** delivery positions, download items, payment captures, refunds, refund positions and document files were readable for all channels by users with the privilege (`OrderDescendantRule`, read and write). Refund positions are filtered through their line item: Shopware's association to the refund has a wrong storage name and can't be filtered by.
+- **Product translations** were readable for all channels (only writes were guarded).
+- **Wishlists** and their products follow the wishlist's sales channel; **password recovery links** follow their customer (`SalesChannelColumnRule`, the new `ParentChannelRule`).
+- **State transitions** (`state_machine_history`, with the user and internal comment) of other channels' orders were readable; they point to their record by id only. Limited users find the transitions of their orders' records only, and create new ones only for those (`StateHistoryGuardSubscriber`).
+- **Endpoints with a sales channel id** (product stream preview, sales channel files such as robots.txt, Commercial's Advanced Search preview) worked for any channel; **switching the customer** of an admin order cart accepted any customer. Own channels and visible customers only (`ChannelParameterGuardSubscriber`, `MN_CHANNEL_SCOPE__ROUTE_DENIED`).
+- **Leak check** (`tests/acceptance/leak-check.php`): a limited user sweeps every entity of the schema and probes the special endpoints for another channel's records; runs against any shop and in CI against seeded test data (`tests/ci/seed.php`), with a role that may read every entity.
+- A unit test makes sure every product detail guarded on write is also filtered on read.
+
 ## 0.11.3
 
 - Requires Shopware 6.7.14 or newer. Three administration internals the plugin builds on appeared between 6.7.12 and 6.7.14 (`sw-cms-detail.canSave` among them); `composer.json` promised `~6.7.0`.

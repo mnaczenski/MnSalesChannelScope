@@ -59,6 +59,17 @@ jobs:
             - name: Administration internals the plugin overrides still exist
               run: php custom/plugins/MnSalesChannelScope/tests/ci/check-admin-overrides.php src/Administration/Resources/app/administration/src
 
+            - name: Test data (a limited user, records of another sales channel)
+              run: |
+                  php custom/plugins/MnSalesChannelScope/tests/ci/seed.php "$PWD" >> "$GITHUB_ENV"
+                  for preset in orders products categories marketing cms settings; do bin/console mn:channel-scope:preset "$preset" scope-ci; done
+
+            - name: Leak check
+              run: |
+                  php -S 127.0.0.1:8000 -t public public/index.php > /tmp/server.log 2>&1 &
+                  for i in $(seq 1 30); do curl -s -o /dev/null http://127.0.0.1:8000/api/_info/version && break; sleep 1; done
+                  SCOPE_SHOP_URL=http://127.0.0.1:8000 php custom/plugins/MnSalesChannelScope/tests/acceptance/leak-check.php
+
     js:
         name: Administration (node)
         runs-on: ubuntu-latest

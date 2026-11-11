@@ -5,6 +5,7 @@
 | `tests/Unit` | PHPUnit: rules, guards, lookups' callers, presets, controller | Shopware's classes (no database, no kernel) |
 | `tests/js` | node's test runner: the administration services | node 20+ |
 | PHPStan | level 8 on `src` and `tests` | Shopware's classes |
+| [Leak check](#leak-check) | a limited user looks for another channel's records through the Admin API | a running shop |
 | [Acceptance checklist](#acceptance-checklist) | the whole plugin in a shop with two sales channels | a shop |
 
 ## Running the tests
@@ -36,7 +37,7 @@ or point to any shop with `SHOPWARE_DIR=/path/to/shop`. The bootstrap uses `SHOP
 `.github/workflows/tests.yml` runs on every push and pull request:
 
 - PHPStan and PHPUnit against the lowest and highest installable Shopware 6.7, on PHP 8.2, 8.3 and 8.4;
-- an installed shop for Shopware 6.7.14.0, 6.7.16.0 and trunk (allowed to fail), where `tests/ci/check-admin-overrides.php` checks that every administration internal listed in `tests/ci/admin-overrides.json` still exists;
+- an installed shop for Shopware 6.7.14.0, 6.7.16.0 and trunk (allowed to fail), where `tests/ci/check-admin-overrides.php` checks that every administration internal listed in `tests/ci/admin-overrides.json` still exists, and the [leak check](#leak-check) runs against test data from `tests/ci/seed.php`;
 - the administration tests on node 20;
 - a JSON check of the preset files.
 
@@ -65,6 +66,26 @@ For a new rule, test at least:
 4. records inserted together in one write: accepted;
 5. unrestricted users: never refused.
 
+## Leak check
+
+`tests/acceptance/leak-check.php` logs in as a limited user and looks for records of a sales channel that isn't theirs. It needs PHP with curl and nothing from the plugin, so it runs against any shop:
+
+```bash
+SCOPE_SHOP_URL=https://shop.example \
+SCOPE_USER=team-a SCOPE_PASSWORD=... \
+SCOPE_FOREIGN_CHANNEL=<id of a channel the user must not see> \
+SCOPE_FOREIGN_ORDER=<id> SCOPE_FOREIGN_CUSTOMER=<id> SCOPE_FOREIGN_PRODUCT=<id> \
+php tests/acceptance/leak-check.php
+```
+
+1. **Entity sweep.** For every entity in the entity schema it follows many-to-one associations (up to four steps) to a sales channel, a customer or a product, and searches for records of the foreign channel. Any hit is a leak, except the few in `ACCEPTED` (visibilities and main categories of shared products). Entities the user has no privilege for are skipped and counted.
+2. **Endpoints** that take a sales channel or customer id: refused for the foreign one.
+3. **Records by id** (the optional `SCOPE_FOREIGN_*` ids): not found; the order's state transitions are not found either.
+
+It exits with 1 on a leak and only reads. Because it walks the schema, it also covers entities that a new Shopware release adds, as long as they reach a sales channel through associations. Records that point to another record by id only (like state transitions) need a probe of their own.
+
+In CI, `tests/ci/seed.php` creates the test data in the fresh shop: a role limited to the Storefront channel that may **read every entity** (so only the plugin stands between the user and the data), its user, and records of the Headless channel only (product, customer with address, wishlist and recovery link, order with delivery position, capture, refund and state transition, newsletter recipient, promotion). The workflow then adds the presets and runs the check against `php -S`.
+
 ## Acceptance checklist
 
 The unit tests can't cover the administration screens and the interplay with Shopware's own checks. Before a release, check in a shop with two sales channels (A and B), a role limited to A with the presets, and a user with that role (not an administrator):
@@ -91,6 +112,8 @@ The unit tests can't cover the administration screens and the interplay with Sho
 - [ ] Clone of a layout or order of B (`POST /api/_action/clone/...`): refused; a copy of a shared layout belongs to A.
 - [ ] Assigning a theme to B: refused.
 - [ ] Global configuration values with credentials (`core.mailerSettings`, `core.store`): not readable.
+- [ ] `php tests/acceptance/leak-check.php` for a user of A against B: no leaks.
+- [ ] Creating an order for a customer of A in the administration: works; switching to a customer of B (`PATCH /api/_proxy/switch-customer`): refused.
 - [ ] With admin OpenSearch (`SHOPWARE_ADMIN_ES_ENABLED=1`): the global search finds the user's records and none of B; `POST /api/_admin/es-search` is refused (`MN_CHANNEL_SCOPE__ROUTE_DENIED`).
 
 **Unrestricted users**

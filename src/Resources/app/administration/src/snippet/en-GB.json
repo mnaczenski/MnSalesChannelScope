@@ -8,22 +8,6 @@
         "preset": {
             "label": "Permission presets",
             "applied": "Preset \"{name}\" added to the permissions. Save the role to keep it.",
-            "names": {
-                "orders": "Order management",
-                "products": "Product management",
-                "categories": "Category management",
-                "settings": "Sales channel settings",
-                "cms": "Shopping Experiences",
-                "marketing": "Marketing"
-            },
-            "help": {
-                "orders": "Orders with documents, refunds, discounts and payment states. Deleting documents also allows deleting document settings.",
-                "products": "Products with media, layouts, bundles and review summaries, plus the Reviews module.",
-                "categories": "Categories with layouts, SEO settings and product assignments.",
-                "marketing": "Promotions and Shopping Experiences. Those shared with other sales channels are read-only.",
-                "cms": "Shopping Experience layouts with media. Layouts shared with other sales channels are read-only.",
-                "settings": "The role's sales channels and the settings pages with a sales channel switch (basic information, cart, login, newsletter, sitemap, SEO). Settings for all channels stay with administrators."
-            },
             "subtitle": "Each preset adds everything a module needs to the permissions below, including permissions Shopware lists under other modules. Nothing is removed. Save the role to keep the changes.",
             "add": "Add",
             "added": "Added"

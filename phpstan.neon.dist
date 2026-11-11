@@ -1,0 +1,12 @@
+parameters:
+    level: 8
+    paths:
+        - src
+        - tests
+    excludePaths:
+        - src/Resources
+    bootstrapFiles:
+        - tests/bootstrap.php
+    treatPhpDocTypesAsCertain: false
+    # Shopware Commercial is optional: its classes are unknown in CI, known in a shop.
+    reportUnmatchedIgnoredErrors: false

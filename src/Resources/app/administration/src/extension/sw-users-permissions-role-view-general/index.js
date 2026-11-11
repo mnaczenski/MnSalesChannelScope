@@ -1,13 +1,10 @@
 import template from './sw-users-permissions-role-view-general.html.twig';
-import ordersPreset from '../../../../../config/presets/orders.json';
-import productsPreset from '../../../../../config/presets/products.json';
-import categoriesPreset from '../../../../../config/presets/categories.json';
-import settingsPreset from '../../../../../config/presets/settings.json';
-import cmsPreset from '../../../../../config/presets/cms.json';
-import marketingPreset from '../../../../../config/presets/marketing.json';
+import { isPresetApplied, loadPresets, translated } from '../../service/presets';
 
-const PRESETS = [ordersPreset, productsPreset, categoriesPreset, marketingPreset, cmsPreset, settingsPreset];
-
+/**
+ * Role page: the role's sales channels (in the basic information) and the
+ * permission presets card.
+ */
 Shopware.Component.override('sw-users-permissions-role-view-general', {
     template,
 
@@ -22,23 +19,39 @@ Shopware.Component.override('sw-users-permissions-role-view-general', {
         },
     },
 
+    data() {
+        return {
+            mnPresets: [],
+        };
+    },
+
     computed: {
         mnSalesChannels() {
             return this.role?.extensions?.mnSalesChannels ?? null;
         },
 
-        mnPresets() {
-            return PRESETS;
+        mnLocale() {
+            return Shopware.Store.get('session')?.currentLocale ?? 'en-GB';
         },
     },
 
-    methods: {
-        /** All of the preset's admin roles are already on the role. */
-        mnPresetApplied(preset) {
-            const privileges = this.role?.privileges ?? [];
+    created() {
+        loadPresets().then((presets) => {
+            this.mnPresets = presets;
+        });
+    },
 
-            return preset.roles.every((key) => privileges.includes(key))
-                && Object.keys(preset.additionalPrivileges).every((key) => !Array.isArray(this.detailedPrivileges) || this.detailedPrivileges.includes(key));
+    methods: {
+        mnPresetLabel(preset) {
+            return translated(preset.label, this.mnLocale);
+        },
+
+        mnPresetDescription(preset) {
+            return translated(preset.description, this.mnLocale);
+        },
+
+        mnPresetApplied(preset) {
+            return isPresetApplied(preset, this.role?.privileges, this.detailedPrivileges);
         },
 
         onMnSalesChannelsChange(collection) {
@@ -66,9 +79,7 @@ Shopware.Component.override('sw-users-permissions-role-view-general', {
             }
 
             this.createNotificationSuccess({
-                message: this.$t('mn-sales-channel-scope.preset.applied', {
-                    name: this.$t(`mn-sales-channel-scope.preset.names.${preset.name}`),
-                }),
+                message: this.$t('mn-sales-channel-scope.preset.applied', { name: this.mnPresetLabel(preset) }),
             });
         },
     },

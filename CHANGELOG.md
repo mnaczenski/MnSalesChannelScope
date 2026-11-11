@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.11.0
+
+Extensible, documented and tested.
+
+- **Extension points** (see `docs/extending.md`): read and write rules as tagged services (`Rule\ReadRule`, `Rule\WriteRule`, `Tags::READ_RULE`, `Tags::WRITE_RULE`); `Rule\SalesChannelColumnRule` for entities with a `sales_channel_id` column; preset directories (`Preset\PresetDirectory`, `Tags::PRESET_DIRECTORY`); per-channel settings domains (`Scope\SettingsDomains`, `Tags::SETTINGS_DOMAINS`); the administration service `Shopware.Service('mnChannelScope')`, including `addSettingsRoutePrefix()` for settings pages of other plugins. All read rules' filters apply together (AND).
+- Newsletter recipients are limited to their sales channel (`SalesChannelColumnRule`).
+- Presets carry their own labels, descriptions and order (`position`); the role page loads them from `GET /api/_action/mn-channel-scope/presets` instead of a hard-coded list. Invalid preset files are reported with the file and the problem.
+- Fixed: a landing page created together with its translation (as the administration does) was refused for limited users.
+- Tests: unit tests for the new extension points, the controller and the configuration rules; tests for the administration services (node's test runner); PHPStan level 8; GitHub Actions on PHP 8.2 to 8.4. The unit tests also run without a shop (`composer install` in the plugin).
+- Documentation: a short README, and `docs/` for architecture, presets, extending and testing.
+
 ## 0.10.1
 
 - Role page: the permission presets have their own card (*Permission presets*) between the basic information and the permission grid, one row per preset with a short description and an *Add* button that shows *Added* once the preset's roles are on the role. The sales channel picker stays in the basic information.

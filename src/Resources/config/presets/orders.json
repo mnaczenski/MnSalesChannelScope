@@ -1,12 +1,13 @@
 {
     "name": "orders",
+    "position": 10,
     "label": {
         "en-GB": "Order management",
         "de-DE": "Bestellverwaltung"
     },
     "description": {
-        "en-GB": "Everything the order module needs: view, edit, create and delete orders, refunds, discounts, documents (create, upload, download, send, delete) and payment and delivery states.",
-        "de-DE": "Alles, was das Bestellmodul braucht: Bestellungen ansehen, bearbeiten, anlegen und löschen, Erstattungen, Rabatte, Dokumente (erstellen, hochladen, herunterladen, versenden, löschen) sowie Zahlungs- und Lieferstatus."
+        "en-GB": "Orders with documents, refunds, discounts and payment states. Deleting documents also allows deleting document settings.",
+        "de-DE": "Bestellungen mit Dokumenten, Erstattungen, Rabatten und Zahlungsstatus. Dokumente löschen erlaubt auch das Löschen von Dokumentvorlagen."
     },
     "roles": [
         "order.viewer",

@@ -85,9 +85,14 @@ class CloneGuardSubscriberTest extends TestCase
     {
         $repository = $this->createMock(EntityRepository::class);
         $repository->method('searchIds')->willReturnCallback(static function (Criteria $criteria, Context $context): IdSearchResult {
-            $ids = array_values(array_filter($criteria->getIds(), static fn ($id) => $id !== self::HIDDEN));
+            $found = [];
+            foreach ($criteria->getIds() as $id) {
+                if (\is_string($id) && $id !== self::HIDDEN) {
+                    $found[$id] = ['primaryKey' => $id, 'data' => []];
+                }
+            }
 
-            return new IdSearchResult(\count($ids), array_map(static fn ($id) => ['primaryKey' => $id, 'data' => []], $ids), $criteria, $context);
+            return new IdSearchResult(\count($found), $found, $criteria, $context);
         });
         $registry = $this->createMock(DefinitionInstanceRegistry::class);
         $registry->method('has')->willReturn(true);

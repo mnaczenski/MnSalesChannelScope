@@ -6,7 +6,7 @@
  * settings"). Each entry is a route name prefix: the page's own routes
  * ("…index", "…detail") and the overview tabs ("sw.settings.index.shop").
  */
-export const SETTINGS_ROUTE_PREFIXES = [
+const prefixes = [
     'sw.settings.index',
     'sw.settings.basic.information',
     'sw.settings.cart',
@@ -15,6 +15,21 @@ export const SETTINGS_ROUTE_PREFIXES = [
     'sw.settings.sitemap',
     'sw.settings.seo',
 ];
+
+/**
+ * Lets limited users open another settings page (route name prefix, e.g.
+ * "sw.settings.acme"). The page's data still needs the role's privileges and
+ * the server's rules.
+ */
+export function addSettingsRoutePrefix(prefix) {
+    if (typeof prefix === 'string' && prefix !== '' && !prefixes.includes(prefix)) {
+        prefixes.push(prefix);
+    }
+}
+
+export function settingsRoutePrefixes() {
+    return [...prefixes];
+}
 
 const routeName = (target) => (typeof target === 'string' ? target : target?.name);
 
@@ -30,5 +45,5 @@ export function isAllowedSettingsRoute(target) {
         return false;
     }
 
-    return SETTINGS_ROUTE_PREFIXES.some((prefix) => name === prefix || name.startsWith(`${prefix}.`));
+    return prefixes.some((prefix) => name === prefix || name.startsWith(`${prefix}.`));
 }

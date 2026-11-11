@@ -29,8 +29,13 @@ class SystemConfigGuardSubscriber implements EventSubscriberInterface
     public const SAVE_ROUTE = 'api.action.core.save.system-config';
     public const BATCH_ROUTE = 'api.action.core.save.system-config.batch';
 
-    public function __construct(private readonly ChannelScope $scope)
-    {
+    private readonly ConfigRules $config;
+
+    public function __construct(
+        private readonly ChannelScope $scope,
+        ?ConfigRules $config = null,
+    ) {
+        $this->config = $config ?? new ConfigRules();
     }
 
     public static function getSubscribedEvents(): array
@@ -73,7 +78,7 @@ class SystemConfigGuardSubscriber implements EventSubscriberInterface
      */
     private function denyRead(Request $request, array $allowed): ?string
     {
-        if (!ConfigRules::isReadable($request->query->getString('domain'))) {
+        if (!$this->config->isReadable($request->query->getString('domain'))) {
             return 'this settings domain is only available to unrestricted users';
         }
         $channel = $this->channel($request->query->get('salesChannelId'));
@@ -97,7 +102,7 @@ class SystemConfigGuardSubscriber implements EventSubscriberInterface
             return 'the sales channel is not one of yours';
         }
         foreach (array_keys($values) as $key) {
-            if (!ConfigRules::isEditable((string) $key)) {
+            if (!$this->config->isEditable((string) $key)) {
                 return \sprintf('"%s" can only be changed by unrestricted users', $key);
             }
         }

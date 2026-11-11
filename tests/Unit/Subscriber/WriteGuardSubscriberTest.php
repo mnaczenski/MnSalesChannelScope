@@ -37,6 +37,7 @@ use Shopware\Commercial\ReviewSummary\Entity\ProductReviewSummary\ProductReviewS
 use Shopware\Core\System\SalesChannel\Aggregate\SalesChannelCountry\SalesChannelCountryDefinition;
 use Shopware\Core\System\SalesChannel\Aggregate\SalesChannelAnalytics\SalesChannelAnalyticsDefinition;
 use Shopware\Core\Content\LandingPage\LandingPageDefinition;
+use Shopware\Core\Content\LandingPage\Aggregate\LandingPageTranslation\LandingPageTranslationDefinition;
 use Shopware\Core\Content\LandingPage\Aggregate\LandingPageSalesChannel\LandingPageSalesChannelDefinition;
 use Shopware\Core\Content\Product\SalesChannel\Sorting\ProductSortingDefinition;
 use Shopware\Core\Framework\DataAbstractionLayer\Write\EntityWriteGatewayInterface;
@@ -242,6 +243,10 @@ class WriteGuardSubscriberTest extends TestCase
         $new = Uuid::randomHex();
         static::assertSame([], $this->denied([$this->insert($landing, $new, ['active' => 1]), $map($new, Ids::DE)]));
         static::assertSame(['landing_page_sales_channel'], $this->denied([$this->insert($landing, $new, ['active' => 1]), $map($new, Ids::EN)]));
+
+        // the administration creates a landing page with its translation
+        $translation = new InsertCommand($this->definition(LandingPageTranslationDefinition::class), ['name' => 'x'], ['landing_page_id' => Uuid::fromHexToBytes($new), 'landing_page_version_id' => $live, 'language_id' => Uuid::fromHexToBytes(Defaults::LANGUAGE_SYSTEM)], $this->existence('landing_page_translation', false), '');
+        static::assertSame([], $this->denied([$this->insert($landing, $new, ['active' => 1]), $translation, $map($new, Ids::DE)]));
     }
 
     public function testWhatAChannelOffersOnlyChangesForTheUsersChannels(): void
@@ -266,7 +271,10 @@ class WriteGuardSubscriberTest extends TestCase
 
     public function testReviewSummariesOfOtherChannelsCanNotChange(): void
     {
-        $summary = $this->definition(ProductReviewSummaryDefinition::class);
+        if (!class_exists(ProductReviewSummaryDefinition::class)) {
+            static::markTestSkipped('Shopware Commercial is not installed.');
+        }
+        $summary = $this->definition(ProductReviewSummaryDefinition::class); // @phpstan-ignore argument.type (unknown without Shopware Commercial)
 
         static::assertSame([], $this->denied([$this->update($summary, self::CONFIG_DE, ['visible' => 1])]));
         static::assertSame(['product_review_summary'], $this->denied([$this->update($summary, self::CONFIG_EN, ['visible' => 1])]));
@@ -345,8 +353,13 @@ class WriteGuardSubscriberTest extends TestCase
     private function definition(string $class): EntityDefinition
     {
         static $registry = null;
+        /** @var list<class-string<EntityDefinition>> $definitions Commercial's review summary definition is optional */
+        $definitions = [
+            OrderDefinition::class, OrderLineItemDefinition::class, CustomerDefinition::class, CustomerAddressDefinition::class, SalesChannelDefinition::class, AclRoleSalesChannelDefinition::class, ProductDefinition::class, ProductPriceDefinition::class, ProductVisibilityDefinition::class, ProductReviewDefinition::class, SystemConfigDefinition::class, ProductSortingDefinition::class, LandingPageDefinition::class, LandingPageTranslationDefinition::class, LandingPageSalesChannelDefinition::class, SalesChannelCountryDefinition::class, SalesChannelAnalyticsDefinition::class, RuleDefinition::class, RuleConditionDefinition::class, PaymentMethodDefinition::class,
+            ...(class_exists(ProductReviewSummaryDefinition::class) ? [ProductReviewSummaryDefinition::class] : []),
+        ];
         $registry ??= new StaticDefinitionInstanceRegistry(
-            [OrderDefinition::class, OrderLineItemDefinition::class, CustomerDefinition::class, CustomerAddressDefinition::class, SalesChannelDefinition::class, AclRoleSalesChannelDefinition::class, ProductDefinition::class, ProductPriceDefinition::class, ProductVisibilityDefinition::class, ProductReviewDefinition::class, SystemConfigDefinition::class, ProductSortingDefinition::class, LandingPageDefinition::class, LandingPageSalesChannelDefinition::class, SalesChannelCountryDefinition::class, SalesChannelAnalyticsDefinition::class, ProductReviewSummaryDefinition::class, RuleDefinition::class, RuleConditionDefinition::class, PaymentMethodDefinition::class],
+            $definitions,
             Validation::createValidator(),
             $this->createMock(EntityWriteGatewayInterface::class),
         );

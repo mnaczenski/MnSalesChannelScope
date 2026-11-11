@@ -4,6 +4,7 @@ namespace Mn\SalesChannelScope\Scope;
 
 use Mn\SalesChannelScope\Category\CategoryTrees;
 use Mn\SalesChannelScope\Cms\CmsPages;
+use Mn\SalesChannelScope\Rule\ReadRule;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\AndFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsAnyFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
@@ -23,12 +24,16 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\PrefixFilter;
  * sales channel settings (configuration, SEO URLs, domains) of other channels.
  * Shopping Experience layouts and their parts (see CmsPages).
  */
-class ScopeRules
+class ScopeRules implements ReadRule
 {
+    private readonly ConfigRules $config;
+
     public function __construct(
         private readonly ?CategoryTrees $categories = null,
         private readonly ?CmsPages $cms = null,
+        ?ConfigRules $config = null,
     ) {
+        $this->config = $config ?? new ConfigRules();
     }
 
     /** Entities that belong to a promotion (association "promotion"). */
@@ -143,20 +148,15 @@ class ScopeRules
      */
     private function systemConfig(array $salesChannelIds): Filter
     {
-        $hidden = array_map(static fn (string $domain) => new PrefixFilter('configurationKey', $domain . '.'), ConfigRules::HIDDEN_DOMAINS);
+        $prefixes = static fn (array $domains) => array_map(static fn (string $domain) => new PrefixFilter('configurationKey', $domain . '.'), $domains);
 
         return new AndFilter([
             new OrFilter([
                 new EqualsAnyFilter('salesChannelId', $salesChannelIds),
                 new EqualsFilter('salesChannelId', null),
             ]),
-            new OrFilter([
-                new AndFilter([
-                    new PrefixFilter('configurationKey', 'core.'),
-                    new NotFilter(NotFilter::CONNECTION_OR, $hidden),
-                ]),
-                ...array_map(static fn (string $domain) => new PrefixFilter('configurationKey', $domain . '.'), ConfigRules::READABLE_DOMAINS),
-            ]),
+            new OrFilter($prefixes($this->config->readableDomains())),
+            new NotFilter(NotFilter::CONNECTION_OR, $prefixes($this->config->hiddenDomains())),
         ]);
     }
 

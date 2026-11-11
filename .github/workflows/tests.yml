@@ -1,0 +1,54 @@
+name: Tests
+
+on:
+    push:
+        branches: [main]
+        tags: ['v*']
+    pull_request:
+
+jobs:
+    php:
+        name: PHP ${{ matrix.php }}
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                php: ['8.2', '8.3', '8.4']
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.php }}
+                  extensions: intl, pdo_mysql, zip, gd
+                  coverage: none
+
+            - name: Install Shopware and the dev tools
+              run: composer install --no-interaction --no-progress
+
+            - name: PHPStan
+              run: composer phpstan -- --no-progress
+
+            - name: PHPUnit
+              run: composer test
+
+    js:
+        name: Administration (node)
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+
+            - name: Unit tests
+              run: node --experimental-detect-module --test tests/js/
+
+    presets:
+        name: Preset files
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Every preset is valid JSON
+              run: for f in src/Resources/config/presets/*.json; do python3 -m json.tool "$f" > /dev/null || exit 1; done

@@ -7,6 +7,8 @@ use Mn\SalesChannelScope\Subscriber\ReadFilterSubscriber;
 use Mn\SalesChannelScope\Tests\Ids;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\MultiFilter;
+use Mn\SalesChannelScope\Rule\ReadRule;
 use Mn\SalesChannelScope\Tests\StaticCategoryTreeSource;
 use Mn\SalesChannelScope\Tests\StaticCmsUsageSource;
 use Mn\SalesChannelScope\Category\CategoryTrees;
@@ -89,19 +91,16 @@ class ReadFilterSubscriberTest extends TestCase
         $filter = $this->search(SystemConfigDefinition::class)->getFilters()[0] ?? null;
 
         static::assertInstanceOf(AndFilter::class, $filter);
-        [$channels, $core] = $filter->getQueries();
-        $hidden = $filter->getQueries()[2] ?? null;
+        [$channels, $readable, $hidden] = $filter->getQueries();
         static::assertEquals(new OrFilter([
             new EqualsAnyFilter('salesChannelId', [Ids::DE]),
             new EqualsFilter('salesChannelId', null),
         ]), $channels);
-        static::assertInstanceOf(OrFilter::class, $core);
-        [$coreOnly, $storefront] = $core->getQueries();
-        static::assertInstanceOf(AndFilter::class, $coreOnly);
-        static::assertEquals(new PrefixFilter('configurationKey', 'core.'), $coreOnly->getQueries()[0]);
-        static::assertContainsEquals(new PrefixFilter('configurationKey', 'core.mailerSettings.'), $coreOnly->getQueries()[1]->getQueries());
-        static::assertEquals(new PrefixFilter('configurationKey', 'storefront.'), $storefront);
-        static::assertNull($hidden);
+        static::assertInstanceOf(OrFilter::class, $readable);
+        static::assertContainsEquals(new PrefixFilter('configurationKey', 'core.'), $readable->getQueries());
+        static::assertContainsEquals(new PrefixFilter('configurationKey', 'storefront.'), $readable->getQueries());
+        static::assertInstanceOf(NotFilter::class, $hidden);
+        static::assertContainsEquals(new PrefixFilter('configurationKey', 'core.mailerSettings.'), $hidden->getQueries());
     }
 
     public function testLayoutPartsGoThroughTheirLayout(): void
@@ -113,6 +112,24 @@ class ReadFilterSubscriberTest extends TestCase
         static::assertSame('block.section.pageId', $filter->getField());
         static::assertContains(StaticCmsUsageSource::OWNED_LAYOUT, $filter->getValue());
         static::assertNotContains(StaticCmsUsageSource::EN_LAYOUT, $filter->getValue());
+    }
+
+    public function testAllReadRulesApply(): void
+    {
+        $extra = new class implements ReadRule {
+            public function readFilter(string $entity, array $salesChannelIds): ?Filter
+            {
+                return $entity === 'order' ? new EqualsFilter('active', true) : null;
+            }
+        };
+        $criteria = new Criteria();
+        $event = new EntitySearchedEvent($criteria, $this->registry->get(OrderDefinition::class), Ids::context());
+        (new ReadFilterSubscriber(Ids::scope(), [new ScopeRules(), $extra]))->onSearch($event);
+
+        static::assertEquals([new AndFilter([
+            new EqualsAnyFilter('salesChannelId', [Ids::DE]),
+            new EqualsFilter('active', true),
+        ])], $criteria->getFilters());
     }
 
     public function testToManyAssociationsAreFilteredToo(): void
@@ -208,13 +225,13 @@ class ReadFilterSubscriberTest extends TestCase
 
     private function subscriber(): ReadFilterSubscriber
     {
-        return new ReadFilterSubscriber(Ids::scope(), new ScopeRules());
+        return new ReadFilterSubscriber(Ids::scope(), [new ScopeRules()]);
     }
 
     /**
      * @return list<string>
      */
-    private function fields(Filter $filter): array
+    private function fields(MultiFilter $filter): array
     {
         return array_values(array_map(static fn (Filter $query) => $query->getFields()[0], $filter->getQueries()));
     }

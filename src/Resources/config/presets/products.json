@@ -1,12 +1,13 @@
 {
     "name": "products",
+    "position": 20,
     "label": {
         "en-GB": "Product management",
         "de-DE": "Produktverwaltung"
     },
     "description": {
-        "en-GB": "Everything the product module needs: view, edit, create and delete products and variants, including media, Shopping Experience layouts, reviews and the Commercial extensions on the product page (bundles, review summaries), and the Reviews module (view, approve and edit, delete reviews of the role's sales channels).",
-        "de-DE": "Alles, was das Produktmodul braucht: Produkte und Varianten ansehen, bearbeiten, anlegen und löschen, inklusive Medien, Erlebniswelten-Layouts, Bewertungen und der Commercial-Erweiterungen der Produktseite (Bundles, Bewertungszusammenfassungen), und das Bewertungsmodul (Bewertungen der eigenen Verkaufskanäle ansehen, freigeben und bearbeiten, löschen)."
+        "en-GB": "Products with media, layouts, bundles and review summaries, plus the Reviews module.",
+        "de-DE": "Produkte mit Medien, Layouts, Bundles und Bewertungszusammenfassungen, dazu das Bewertungsmodul."
     },
     "roles": [
         "product.viewer",

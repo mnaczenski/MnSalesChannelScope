@@ -90,11 +90,15 @@ class WriteGuardSubscriber implements EventSubscriberInterface
     /** Payload columns of an update that only touches the record (nested writes of its children). */
     private const TOUCH_COLUMNS = ['updated_at', 'updated_by_id'];
 
+    private readonly ConfigRules $config;
+
     public function __construct(
         private readonly ChannelScope $scope,
         private readonly ScopeLookup $lookup,
         private readonly ?CategoryTrees $categories = null,
+        ?ConfigRules $config = null,
     ) {
+        $this->config = $config ?? new ConfigRules();
     }
 
     public static function getSubscribedEvents(): array
@@ -366,6 +370,27 @@ class WriteGuardSubscriber implements EventSubscriberInterface
             return null;
         }
 
+        if ($entity === 'landing_page' || \in_array($entity, self::LANDING_PAGE_WRITE_CHILDREN, true)) {
+            $column = $entity === 'landing_page' ? 'id' : 'landing_page_id';
+            $id = $primaryKey[$column] ?? $payload[$column] ?? null;
+            if ($entity === 'landing_page' && $insert) {
+                return null;
+            }
+            $channels = \is_string($id) ? $this->lookup->landingPageChannels($id, $primaryKey['version_id'] ?? $primaryKey['landing_page_version_id'] ?? $payload['landing_page_version_id'] ?? $this->liveVersion()) : null;
+            if ($channels === null && $entity !== 'landing_page_sales_channel') {
+                // a landing page inserted in this write: its channels are checked below
+                return \is_string($id) && isset($newLandingPages[Uuid::fromBytesToHex($id)]) ? null : 'the landing page belongs to other sales channels';
+            }
+            if ($channels !== null && ($channels === [] || array_diff($channels, array_keys($allowed)) !== [])) {
+                return 'the landing page is also shown in other sales channels';
+            }
+            if ($entity === 'landing_page_sales_channel' && !isset($allowed[$this->hex($primaryKey['sales_channel_id'] ?? null) ?? ''])) {
+                return 'landing pages can only be shown in your sales channels';
+            }
+
+            return null;
+        }
+
         return null;
     }
 
@@ -451,27 +476,6 @@ class WriteGuardSubscriber implements EventSubscriberInterface
             return null;
         }
 
-        if ($entity === 'landing_page' || \in_array($entity, self::LANDING_PAGE_WRITE_CHILDREN, true)) {
-            $column = $entity === 'landing_page' ? 'id' : 'landing_page_id';
-            $id = $primaryKey[$column] ?? $payload[$column] ?? null;
-            if ($entity === 'landing_page' && $insert) {
-                return null;
-            }
-            $channels = \is_string($id) ? $this->lookup->landingPageChannels($id, $primaryKey['version_id'] ?? $primaryKey['landing_page_version_id'] ?? $payload['landing_page_version_id'] ?? $this->liveVersion()) : null;
-            if ($channels === null && $entity !== 'landing_page_sales_channel') {
-                // a landing page inserted in this write: its channels are checked below
-                return \is_string($id) && isset($newLandingPages[Uuid::fromBytesToHex($id)]) ? null : 'the landing page belongs to other sales channels';
-            }
-            if ($channels !== null && ($channels === [] || array_diff($channels, array_keys($allowed)) !== [])) {
-                return 'the landing page is also shown in other sales channels';
-            }
-            if ($entity === 'landing_page_sales_channel' && !isset($allowed[$this->hex($primaryKey['sales_channel_id'] ?? null) ?? ''])) {
-                return 'landing pages can only be shown in your sales channels';
-            }
-
-            return null;
-        }
-
         if (\in_array($entity, ScopeRules::CHANNEL_MAPPINGS, true)) {
             $channel = $this->hex($primaryKey['sales_channel_id'] ?? $payload['sales_channel_id'] ?? null);
             if (!isset($allowed[$channel ?? ''])) {
@@ -522,7 +526,7 @@ class WriteGuardSubscriber implements EventSubscriberInterface
             $key = \array_key_exists('configuration_key', $payload)
                 ? (string) $payload['configuration_key']
                 : ($insert ? '' : (string) $this->lookup->configKey($primaryKey));
-            if (!ConfigRules::isEditable($key)) {
+            if (!$this->config->isEditable($key)) {
                 return 'this setting can only be changed by unrestricted users';
             }
         }

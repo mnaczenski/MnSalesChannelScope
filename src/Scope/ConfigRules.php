@@ -4,66 +4,73 @@ namespace Mn\SalesChannelScope\Scope;
 
 /**
  * Which configuration values (system_config) a restricted user reads and
- * changes.
+ * changes, from all SettingsDomains (Shopware's own, see
+ * SettingsDomains::shopware(), and those of other plugins):
  *
- * - Read: Shopware's own settings (core.*) of their sales channels and those
- *   that apply to all channels, which the administration shows as inherited
- *   values. Not: plugin and app settings, and core settings that hold
- *   credentials or affect the whole installation (mailer, store, license, ...).
- *   Also the storefront's theme bookkeeping (pending theme, theme seeds).
- * - Change: the sales channel specific settings pages of the "Sales channel
- *   settings" preset, and only for their own channels.
+ * - read: readable and editable domains, of their sales channels and for all
+ *   channels (the administration shows those as inherited values), except
+ *   hidden domains;
+ * - change: editable domains, only for their own channels.
+ *
+ * A domain matches the key itself and every key below it ("core.cart"
+ * matches "core.cart.maxQuantity").
  */
 final class ConfigRules
 {
-    /** Domains of the settings pages a restricted user may change, per own channel. */
-    public const EDITABLE_DOMAINS = [
-        'core.basicInformation',
-        'core.cart',
-        'core.loginRegistration',
-        'core.newsletter',
-        'core.sitemap',
-    ];
+    /** @var list<string> */
+    private array $editable = [];
 
-    /** Core domains that hold credentials or concern the whole installation. */
-    public const HIDDEN_DOMAINS = [
-        'core.app',
-        'core.frw',
-        'core.logging',
-        'core.mailerSettings',
-        'core.mediaAiTag',
-        'core.services',
-        'core.store',
-        'core.update',
-        'core.usageData',
-        'core.userPermission',
-        'core.webhook',
-    ];
+    /** @var list<string> */
+    private array $readable = [];
 
-    /** Other domains the administration reads on pages of the presets (theme bookkeeping on the sales channel page). */
-    public const READABLE_DOMAINS = ['storefront'];
+    /** @var list<string> */
+    private array $hidden = [];
 
-    public static function isReadable(string $keyOrDomain): bool
+    /**
+     * @param iterable<SettingsDomains> $domains
+     */
+    public function __construct(iterable $domains = [])
     {
-        if (self::inDomains($keyOrDomain, self::READABLE_DOMAINS)) {
-            return true;
+        foreach ([SettingsDomains::shopware(), ...$domains] as $set) {
+            array_push($this->editable, ...$set->editable);
+            array_push($this->readable, ...$set->readable, ...$set->editable);
+            array_push($this->hidden, ...$set->hidden);
         }
-        if (!str_starts_with($keyOrDomain, 'core.')) {
-            return false;
-        }
-
-        return !self::inDomains($keyOrDomain, self::HIDDEN_DOMAINS);
+        $this->editable = array_values(array_unique($this->editable));
+        $this->readable = array_values(array_unique($this->readable));
+        $this->hidden = array_values(array_unique($this->hidden));
     }
 
-    public static function isEditable(string $key): bool
+    public function isReadable(string $keyOrDomain): bool
     {
-        return self::inDomains($key, self::EDITABLE_DOMAINS);
+        return self::matches($keyOrDomain, $this->readable) && !self::matches($keyOrDomain, $this->hidden);
+    }
+
+    public function isEditable(string $key): bool
+    {
+        return self::matches($key, $this->editable) && !self::matches($key, $this->hidden);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function readableDomains(): array
+    {
+        return $this->readable;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function hiddenDomains(): array
+    {
+        return $this->hidden;
     }
 
     /**
      * @param list<string> $domains
      */
-    private static function inDomains(string $keyOrDomain, array $domains): bool
+    private static function matches(string $keyOrDomain, array $domains): bool
     {
         foreach ($domains as $domain) {
             if ($keyOrDomain === $domain || str_starts_with($keyOrDomain, $domain . '.')) {

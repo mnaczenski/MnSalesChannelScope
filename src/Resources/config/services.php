@@ -13,10 +13,18 @@ use Mn\SalesChannelScope\Dashboard\ScopedOrderAmountService;
 use Mn\SalesChannelScope\Entity\AclRoleSalesChannelDefinition;
 use Mn\SalesChannelScope\Extension\AclRoleExtension;
 use Mn\SalesChannelScope\Preset\PermissionPresets;
+use Mn\SalesChannelScope\Preset\PresetDirectory;
 use Mn\SalesChannelScope\Scope\ChannelScope;
 use Mn\SalesChannelScope\Scope\DbalRoleChannelLoader;
 use Mn\SalesChannelScope\Scope\RoleChannelLoader;
 use Mn\SalesChannelScope\Scope\ScopeRules;
+use Mn\SalesChannelScope\Scope\ConfigRules;
+use Mn\SalesChannelScope\Scope\SettingsDomains;
+use Mn\SalesChannelScope\Rule\ChannelColumnLookup;
+use Mn\SalesChannelScope\Rule\DbalChannelColumnLookup;
+use Mn\SalesChannelScope\Rule\SalesChannelColumnRule;
+use Mn\SalesChannelScope\Tags;
+use Mn\SalesChannelScope\Subscriber\WriteRuleSubscriber;
 use Mn\SalesChannelScope\Subscriber\ChannelTotalsSubscriber;
 use Mn\SalesChannelScope\Subscriber\PromotionGuardSubscriber;
 use Mn\SalesChannelScope\Promotion\DbalPromotionSource;
@@ -39,6 +47,7 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 return static function (ContainerConfigurator $configurator): void {
     $services = $configurator->services();
@@ -64,14 +73,32 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set(CmsPages::class)
         ->args([service(CmsUsageSource::class), service(CategoryTrees::class)])
         ->tag('kernel.reset', ['method' => 'reset']);
-    $services->set(ScopeRules::class)->args([service(CategoryTrees::class), service(CmsPages::class)]);
+    // Extension point: further settings domains (see docs/extending.md).
+    $services->set(ConfigRules::class)->args([tagged_iterator(Tags::SETTINGS_DOMAINS)]);
+
+    $services->set(ScopeRules::class)
+        ->args([service(CategoryTrees::class), service(CmsPages::class), service(ConfigRules::class)])
+        ->tag(Tags::READ_RULE, ['priority' => 100]);
+
+    // Extension point: read and write rules (see docs/extending.md).
+    $services->set(DbalChannelColumnLookup::class)->args([service(Connection::class)]);
+    $services->alias(ChannelColumnLookup::class, DbalChannelColumnLookup::class);
+    $services->set(WriteRuleSubscriber::class)
+        ->args([service(ChannelScope::class), tagged_iterator(Tags::WRITE_RULE)])
+        ->tag('kernel.event_subscriber');
+
+    // Newsletter recipients belong to the sales channel they subscribed in.
+    $services->set('mn_channel_scope.rule.newsletter_recipient', SalesChannelColumnRule::class)
+        ->args(['newsletter_recipient', service(ChannelColumnLookup::class)])
+        ->tag(Tags::READ_RULE)
+        ->tag(Tags::WRITE_RULE);
 
     $services->set(CmsGuardSubscriber::class)
         ->args([service(ChannelScope::class), service(CmsPages::class)])
         ->tag('kernel.event_subscriber');
 
     $services->set(ReadFilterSubscriber::class)
-        ->args([service(ChannelScope::class), service(ScopeRules::class)])
+        ->args([service(ChannelScope::class), tagged_iterator(Tags::READ_RULE)])
         ->tag('kernel.event_subscriber');
 
     $services->set(DbalChannelTotals::class)->args([service(Connection::class)]);
@@ -83,7 +110,7 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set(DbalScopeLookup::class)->args([service(Connection::class)]);
     $services->alias(ScopeLookup::class, DbalScopeLookup::class);
     $services->set(WriteGuardSubscriber::class)
-        ->args([service(ChannelScope::class), service(ScopeLookup::class), service(CategoryTrees::class)])
+        ->args([service(ChannelScope::class), service(ScopeLookup::class), service(CategoryTrees::class), service(ConfigRules::class)])
         ->tag('kernel.event_subscriber');
 
     $services->set(ImitateCustomerGuardSubscriber::class)
@@ -105,16 +132,20 @@ return static function (ContainerConfigurator $configurator): void {
         ->tag('kernel.event_subscriber');
 
     $services->set(SystemConfigGuardSubscriber::class)
-        ->args([service(ChannelScope::class)])
+        ->args([service(ChannelScope::class), service(ConfigRules::class)])
         ->tag('kernel.event_subscriber');
 
     $services->set(ChannelScopeController::class)
         ->public()
-        ->args([service(ChannelScope::class), service(CategoryTrees::class), service(CmsPages::class)])
+        ->args([service(ChannelScope::class), service(CategoryTrees::class), service(CmsPages::class), service(PermissionPresets::class)])
         ->call('setContainer', [service('service_container')])
         ->tag('controller.service_arguments');
 
-    $services->set(PermissionPresets::class)->args([__DIR__ . '/presets']);
+    // Extension point: further preset directories (see docs/extending.md).
+    $services->set('mn_channel_scope.presets.core', PresetDirectory::class)
+        ->args([__DIR__ . '/presets'])
+        ->tag(Tags::PRESET_DIRECTORY, ['priority' => 100]);
+    $services->set(PermissionPresets::class)->args([tagged_iterator(Tags::PRESET_DIRECTORY)]);
     $services->set(ApplyPresetCommand::class)
         ->args([service(PermissionPresets::class), service(Connection::class)])
         ->tag('console.command');

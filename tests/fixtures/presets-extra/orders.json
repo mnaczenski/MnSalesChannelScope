@@ -1,0 +1,8 @@
+{
+    "name": "orders",
+    "label": {"en-GB": "Overridden orders"},
+    "description": {"en-GB": "Must not replace the shipped preset."},
+    "roles": [],
+    "additionalPrivileges": {},
+    "expandedPrivileges": []
+}

@@ -1,17 +1,29 @@
 <?php declare(strict_types=1);
 
 /*
- * Unit tests run against the Shopware installation the plugin lives in
- * (custom/plugins/MnSalesChannelScope) or the one in SHOPWARE_DIR.
- * No database or kernel is needed.
+ * The unit tests need Shopware's classes, but no database or kernel. They
+ * use, in this order:
+ *
+ * - SHOPWARE_DIR: the root of a Shopware installation;
+ * - the installation the plugin lives in (custom/plugins/MnSalesChannelScope);
+ * - the plugin's own vendor directory (composer install in the plugin, as in CI).
  */
-$shopwareDir = getenv('SHOPWARE_DIR') ?: dirname(__DIR__, 4);
-$autoload = $shopwareDir . '/vendor/autoload.php';
-if (!is_file($autoload)) {
-    fwrite(\STDERR, "Shopware not found at {$shopwareDir}. Set SHOPWARE_DIR to the shop root.\n");
-    exit(1);
+$candidates = array_filter([
+    getenv('SHOPWARE_DIR') ?: null,
+    dirname(__DIR__, 4),
+    dirname(__DIR__),
+]);
+
+foreach ($candidates as $root) {
+    $autoload = $root . '/vendor/autoload.php';
+    if (is_file($autoload) && is_dir($root . '/vendor/shopware/core')) {
+        $classLoader = require $autoload;
+        $classLoader->addPsr4('Mn\\SalesChannelScope\\', dirname(__DIR__) . '/src');
+        $classLoader->addPsr4('Mn\\SalesChannelScope\\Tests\\', __DIR__);
+
+        return;
+    }
 }
 
-$classLoader = require $autoload;
-$classLoader->addPsr4('Mn\\SalesChannelScope\\', dirname(__DIR__) . '/src');
-$classLoader->addPsr4('Mn\\SalesChannelScope\\Tests\\', __DIR__);
+fwrite(\STDERR, "Shopware not found. Set SHOPWARE_DIR to a shop root, or run composer install in the plugin.\n");
+exit(1);

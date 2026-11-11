@@ -8,22 +8,6 @@
         "preset": {
             "label": "Berechtigungsvorlagen",
             "applied": "Vorlage \"{name}\" zu den Berechtigungen hinzugefügt. Speichern Sie die Rolle, um sie zu übernehmen.",
-            "names": {
-                "orders": "Bestellverwaltung",
-                "products": "Produktverwaltung",
-                "categories": "Kategorieverwaltung",
-                "settings": "Verkaufskanal-Einstellungen",
-                "cms": "Erlebniswelten",
-                "marketing": "Marketing"
-            },
-            "help": {
-                "orders": "Bestellungen mit Dokumenten, Erstattungen, Rabatten und Zahlungsstatus. Dokumente löschen erlaubt auch das Löschen von Dokumentvorlagen.",
-                "products": "Produkte mit Medien, Layouts, Bundles und Bewertungszusammenfassungen, dazu das Bewertungsmodul.",
-                "categories": "Kategorien mit Layouts, SEO-Einstellungen und Produktzuordnungen.",
-                "marketing": "Promotions und Erlebniswelten. Mit anderen Verkaufskanälen geteilte sind schreibgeschützt.",
-                "cms": "Erlebniswelten-Layouts mit Medien. Mit anderen Verkaufskanälen geteilte Layouts sind schreibgeschützt.",
-                "settings": "Die Verkaufskanäle der Rolle und die Einstellungsseiten mit Verkaufskanal-Auswahl (Grundinformationen, Warenkorb, Login, Newsletter, Sitemap, SEO). Einstellungen für alle Kanäle bleiben Administratoren vorbehalten."
-            },
             "subtitle": "Jede Vorlage fügt den Berechtigungen unten alles hinzu, was ein Modul braucht, auch Berechtigungen, die Shopware unter anderen Modulen führt. Es wird nichts entfernt. Speichern Sie die Rolle, um die Änderungen zu übernehmen.",
             "add": "Hinzufügen",
             "added": "Hinzugefügt"

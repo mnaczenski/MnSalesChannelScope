@@ -9,6 +9,7 @@ use Mn\SalesChannelScope\Tests\StaticCategoryTreeSource as T;
 use Mn\SalesChannelScope\Tests\StaticScopeLookup;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Shopware\Core\Framework\Context;
 use Shopware\Core\Content\Category\Aggregate\CategoryTranslation\CategoryTranslationDefinition;
 use Shopware\Core\Content\Category\CategoryDefinition;
 use Shopware\Core\Content\Product\Aggregate\ProductCategory\ProductCategoryDefinition;
@@ -37,6 +38,11 @@ class CategoryWriteGuardTest extends TestCase
         static::assertSame(['category'], $this->denied([$this->update(T::SHARED_SALE, ['active' => 1])]), 'shared trees are read-only');
         static::assertSame(['category'], $this->denied([$this->update(T::ROOT, ['active' => 1])]), 'ancestors are read-only');
         static::assertSame(['category'], $this->denied([$this->update(T::EN_SOFAS, ['active' => 1])]));
+    }
+
+    public function testUnrestrictedUsersAreNotChecked(): void
+    {
+        static::assertSame([], $this->denied([$this->update(T::SHARED_SALE, ['active' => 1])], Ids::context(Ids::FREE_USER)));
     }
 
     public function testNewCategoriesNeedAnEditableParent(): void
@@ -84,10 +90,10 @@ class CategoryWriteGuardTest extends TestCase
      *
      * @return list<string>
      */
-    private function denied(array $commands): array
+    private function denied(array $commands, ?Context $context = null): array
     {
         $lookup = new StaticScopeLookup(products: [self::PRODUCT_DE => [Ids::DE]]);
-        $event = new PreWriteValidationEvent(WriteContext::createFromContext(Ids::context()), $commands);
+        $event = new PreWriteValidationEvent(WriteContext::createFromContext($context ?? Ids::context()), $commands);
         (new WriteGuardSubscriber(Ids::scope(), $lookup, T::trees()))->onPreWrite($event);
 
         $entities = [];

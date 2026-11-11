@@ -1,0 +1,9 @@
+{
+    "name": "acme-newsletter",
+    "position": 45,
+    "label": {"en-GB": "Newsletter recipients", "de-DE": "Newsletter-Empfänger"},
+    "description": {"en-GB": "Newsletter recipients of the role's sales channels.", "de-DE": "Newsletter-Empfänger der Verkaufskanäle der Rolle."},
+    "roles": ["newsletter_recipient.viewer", "newsletter_recipient.editor"],
+    "additionalPrivileges": {},
+    "expandedPrivileges": ["newsletter_recipient:read", "newsletter_recipient:update"]
+}

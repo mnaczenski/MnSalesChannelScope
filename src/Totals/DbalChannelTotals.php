@@ -59,9 +59,16 @@ class DbalChannelTotals implements ChannelTotals
             $types,
         );
         foreach ($orders as $row) {
-            $result[$row['customer_id']]['orderCount'] = (int) $row['order_count'];
-            $result[$row['customer_id']]['orderTotalAmount'] = (float) $row['order_total_amount'];
-            $result[$row['customer_id']]['lastOrderDate'] = $row['last_order_date'] ? new \DateTimeImmutable((string) $row['last_order_date']) : null;
+            $id = (string) $row['customer_id'];
+            if (!isset($result[$id])) {
+                continue;
+            }
+            $result[$id] = [
+                'orderCount' => (int) $row['order_count'],
+                'orderTotalAmount' => (float) $row['order_total_amount'],
+                'lastOrderDate' => $row['last_order_date'] ? new \DateTimeImmutable((string) $row['last_order_date']) : null,
+                'reviewCount' => $result[$id]['reviewCount'],
+            ];
         }
 
         $reviews = $this->connection->fetchAllAssociative(
@@ -73,7 +80,10 @@ class DbalChannelTotals implements ChannelTotals
             $types,
         );
         foreach ($reviews as $row) {
-            $result[$row['customer_id']]['reviewCount'] = (int) $row['review_count'];
+            $id = (string) $row['customer_id'];
+            if (isset($result[$id])) {
+                $result[$id] = ['reviewCount' => (int) $row['review_count']] + $result[$id];
+            }
         }
 
         return $result;

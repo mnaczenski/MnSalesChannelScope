@@ -4,6 +4,7 @@ namespace Mn\SalesChannelScope\Controller;
 
 use Mn\SalesChannelScope\Category\CategoryTrees;
 use Mn\SalesChannelScope\Cms\CmsPages;
+use Mn\SalesChannelScope\Preset\PermissionPresets;
 use Mn\SalesChannelScope\Scope\ChannelScope;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\Routing\ApiRouteScope;
@@ -24,7 +25,29 @@ class ChannelScopeController extends AbstractController
         private readonly ChannelScope $scope,
         private readonly CategoryTrees $categories,
         private readonly CmsPages $cms,
+        private readonly PermissionPresets $presets,
     ) {
+    }
+
+    /**
+     * The permission presets for the role page (without the expanded
+     * privileges, which the administration computes itself when saving).
+     */
+    #[Route(
+        path: '/api/_action/mn-channel-scope/presets',
+        name: 'api.action.mn-channel-scope.presets',
+        defaults: [PlatformRequest::ATTRIBUTE_ACL => ['acl_role:read']],
+        methods: ['GET'],
+    )]
+    public function presets(): JsonResponse
+    {
+        return new JsonResponse(array_map(static fn (array $preset) => [
+            'name' => $preset['name'],
+            'label' => $preset['label'],
+            'description' => $preset['description'],
+            'roles' => $preset['roles'],
+            'additionalPrivileges' => $preset['additionalPrivileges'],
+        ], $this->presets->all()));
     }
 
     /**

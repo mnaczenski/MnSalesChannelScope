@@ -18,7 +18,7 @@
 {% block sw_users_permissions_role_role_view_general_card_view_permissions %}
     {% block mn_sales_channel_scope_role_presets %}
         <mt-card
-            v-if="role"
+            v-if="role && mnPresets.length > 0"
             class="mn-sales-channel-scope-presets"
             position-identifier="mn-sales-channel-scope-role-presets"
             :title="$t('mn-sales-channel-scope.preset.label')"
@@ -33,10 +33,10 @@
                 >
                     <div class="mn-sales-channel-scope-presets__text">
                         <span class="mn-sales-channel-scope-presets__name">
-                            {{ $t(`mn-sales-channel-scope.preset.names.${preset.name}`) }}
+                            {{ mnPresetLabel(preset) }}
                         </span>
                         <span class="mn-sales-channel-scope-presets__description">
-                            {{ $t(`mn-sales-channel-scope.preset.help.${preset.name}`) }}
+                            {{ mnPresetDescription(preset) }}
                         </span>
                     </div>
 

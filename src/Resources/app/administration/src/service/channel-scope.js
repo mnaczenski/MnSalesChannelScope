@@ -1,32 +1,29 @@
+import { apiGet } from './api.js';
+
 /**
  * The current user's sales channel limit, loaded once per login:
- * { restricted: boolean, salesChannelIds: string[] }.
+ * { restricted, salesChannelIds, categoryEntryPoints: { own, foreign } }.
  * Only used to mark shared records as read-only; the server enforces the rules.
  */
+const UNRESTRICTED = Object.freeze({ restricted: false, salesChannelIds: [], categoryEntryPoints: { own: [], foreign: [] } });
+
 let pending = null;
+let logoutListener = false;
 
 export default function loadChannelScope() {
     if (pending === null) {
-        const httpClient = Shopware.Application.getContainer('init').httpClient;
-        const loginService = Shopware.Service('loginService');
-
-        pending = httpClient
-            .get('_action/mn-channel-scope/me', {
-                headers: {
-                    Accept: 'application/json',
-                    Authorization: `Bearer ${loginService.getToken()}`,
-                },
-            })
-            .then((response) => response.data)
-            .catch(() => {
-                pending = null;
-
-                return { restricted: false, salesChannelIds: [] };
-            });
-
-        loginService.addOnLogoutListener?.(() => {
+        pending = apiGet('_action/mn-channel-scope/me').catch(() => {
             pending = null;
+
+            return UNRESTRICTED;
         });
+
+        if (!logoutListener) {
+            Shopware.Service('loginService').addOnLogoutListener?.(() => {
+                pending = null;
+            });
+            logoutListener = true;
+        }
     }
 
     return pending;
@@ -106,16 +103,6 @@ export function registerReadOnlyGuard(isReadOnly, deniedPrivileges) {
  * { restricted, editable, salesChannelIds }. Only drives the UI.
  */
 export function loadCmsPageScope(pageId) {
-    const httpClient = Shopware.Application.getContainer('init').httpClient;
-    const loginService = Shopware.Service('loginService');
-
-    return httpClient
-        .get(`_action/mn-channel-scope/cms-page/${pageId}`, {
-            headers: {
-                Accept: 'application/json',
-                Authorization: `Bearer ${loginService.getToken()}`,
-            },
-        })
-        .then((response) => response.data)
+    return apiGet(`_action/mn-channel-scope/cms-page/${pageId}`)
         .catch(() => ({ restricted: false, editable: true, salesChannelIds: [] }));
 }

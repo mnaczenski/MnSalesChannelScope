@@ -41,6 +41,9 @@ class ChannelTotalsSubscriber implements EventSubscriberInterface
         ];
     }
 
+    /**
+     * @param EntityLoadedEvent<covariant Entity> $event
+     */
     public function onCustomers(EntityLoadedEvent $event): void
     {
         $channels = $this->scope->salesChannelIds($event->getContext());
@@ -62,6 +65,9 @@ class ChannelTotalsSubscriber implements EventSubscriberInterface
         }
     }
 
+    /**
+     * @param EntityLoadedEvent<covariant Entity> $event
+     */
     public function onProducts(EntityLoadedEvent $event): void
     {
         $channels = $this->scope->salesChannelIds($event->getContext());

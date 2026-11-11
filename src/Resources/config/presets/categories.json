@@ -1,12 +1,13 @@
 {
     "name": "categories",
+    "position": 30,
     "label": {
         "en-GB": "Category management",
         "de-DE": "Kategorieverwaltung"
     },
     "description": {
-        "en-GB": "Everything the category module needs: view, edit, create and delete categories, including their layouts, SEO settings and product assignments.",
-        "de-DE": "Alles, was das Kategoriemodul braucht: Kategorien ansehen, bearbeiten, anlegen und löschen, inklusive Layouts, SEO-Einstellungen und Produktzuordnungen."
+        "en-GB": "Categories with layouts, SEO settings and product assignments.",
+        "de-DE": "Kategorien mit Layouts, SEO-Einstellungen und Produktzuordnungen."
     },
     "roles": [
         "category.viewer",

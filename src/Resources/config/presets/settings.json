@@ -1,12 +1,13 @@
 {
     "name": "settings",
+    "position": 60,
     "label": {
         "en-GB": "Sales channel settings",
         "de-DE": "Verkaufskanal-Einstellungen"
     },
     "description": {
-        "en-GB": "The role's own sales channels (Sales Channels in the main menu: domains, countries, currencies, languages, payment and shipping methods, theme, analytics, product comparison) and the settings pages with a sales channel switch: basic information, cart, login & registration, newsletter, sitemap, SEO URL templates. Settings for all channels, plugin settings, pages without a sales channel switch, and creating or deleting sales channels stay with unrestricted users.",
-        "de-DE": "Die eigenen Verkaufskanäle der Rolle (Verkaufskanäle im Hauptmenü: Domains, Länder, Währungen, Sprachen, Zahlungs- und Versandarten, Theme, Analytics, Produktvergleich) und die Einstellungsseiten mit Verkaufskanal-Auswahl: Grundinformationen, Warenkorb, Login & Registrierung, Newsletter, Sitemap, SEO-URL-Templates. Einstellungen für alle Kanäle, Plugin-Einstellungen, Seiten ohne Verkaufskanal-Auswahl sowie das Anlegen und Löschen von Verkaufskanälen bleiben unbeschränkten Benutzern vorbehalten."
+        "en-GB": "The role's sales channels and the settings pages with a sales channel switch (basic information, cart, login, newsletter, sitemap, SEO). Settings for all channels stay with administrators.",
+        "de-DE": "Die Verkaufskanäle der Rolle und die Einstellungsseiten mit Verkaufskanal-Auswahl (Grundinformationen, Warenkorb, Login, Newsletter, Sitemap, SEO). Einstellungen für alle Kanäle bleiben Administratoren vorbehalten."
     },
     "roles": [
         "system.system_config",

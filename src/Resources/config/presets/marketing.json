@@ -1,12 +1,13 @@
 {
     "name": "marketing",
+    "position": 40,
     "label": {
         "en-GB": "Marketing",
         "de-DE": "Marketing"
     },
     "description": {
-        "en-GB": "Promotions and Shopping Experiences for the role's own sales channels: view, edit, create and delete promotions (discounts, codes, conditions) and layouts. Promotions and layouts shared with other channels are read-only.",
-        "de-DE": "Promotions und Erlebniswelten für die eigenen Verkaufskanäle der Rolle: Promotions (Rabatte, Codes, Bedingungen) und Layouts ansehen, bearbeiten, anlegen und löschen. Mit anderen Kanälen geteilte Promotions und Layouts sind schreibgeschützt."
+        "en-GB": "Promotions and Shopping Experiences. Those shared with other sales channels are read-only.",
+        "de-DE": "Promotions und Erlebniswelten. Mit anderen Verkaufskanälen geteilte sind schreibgeschützt."
     },
     "roles": [
         "promotion.viewer",

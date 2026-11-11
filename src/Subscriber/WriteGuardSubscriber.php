@@ -46,7 +46,9 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  * - what a sales channel offers (countries, currencies, languages, payment
  *   and shipping methods, translations, theme assignment) and its analytics:
  *   only for their channels;
- * - themes: only those used by their channels only.
+ * - themes: only those used by their channels only;
+ * - rules: only new ones (with their conditions); payment and shipping
+ *   methods and Commercial's dynamic access rules not at all.
  */
 class WriteGuardSubscriber implements EventSubscriberInterface
 {
@@ -64,6 +66,17 @@ class WriteGuardSubscriber implements EventSubscriberInterface
         'product_tag',
         'product_custom_field_set',
         'product_translation',
+    ];
+
+    /** Records that apply to all sales channels, which Shopware's promotion editor role can change. */
+    public const GLOBAL_RECORDS = [
+        'payment_method',
+        'payment_method_translation',
+        'shipping_method',
+        'shipping_method_translation',
+        'swag_dynamic_access_category_rule',
+        'swag_dynamic_access_product_rule',
+        'swag_dynamic_access_landing_page_rule',
     ];
 
     /** Landing page tables whose records belong to one landing page (column landing_page_id). */
@@ -102,7 +115,11 @@ class WriteGuardSubscriber implements EventSubscriberInterface
 
         $newCategories = [];
         $newLandingPages = [];
+        $newRules = [];
         foreach ($commands as $command) {
+            if ($command instanceof InsertCommand && $command->getEntityName() === 'rule' && \is_string($id = $command->getPrimaryKey()['id'] ?? null)) {
+                $newRules[Uuid::fromBytesToHex($id)] = true;
+            }
             if ($command instanceof InsertCommand && $command->getEntityName() === 'landing_page' && \is_string($id = $command->getPrimaryKey()['id'] ?? null)) {
                 $newLandingPages[Uuid::fromBytesToHex($id)] = true;
             }
@@ -112,13 +129,40 @@ class WriteGuardSubscriber implements EventSubscriberInterface
         }
 
         foreach ($commands as $command) {
-            $reason = $this->deny($command, $allowed, $newOrders, $newCustomers, $newLandingPages)
+            $reason = $this->denyGlobal($command, $newRules)
+                ?? $this->deny($command, $allowed, $newOrders, $newCustomers, $newLandingPages)
                 ?? $this->denyProduct($command, $allowed, $newProducts)
                 ?? $this->denyCategory($command, $ids, $newCategories);
             if ($reason !== null) {
                 $event->getExceptions()->add(ChannelScopeException::writeDenied($command->getEntityName(), $reason));
             }
         }
+    }
+
+    /**
+     * Rules, payment and shipping methods apply to all sales channels. Limited
+     * users may create rules (with their conditions), for example for the
+     * conditions of a promotion, but not change existing ones.
+     *
+     * @param array<string, true> $newRules
+     */
+    private function denyGlobal(WriteCommand $command, array $newRules): ?string
+    {
+        $entity = $command->getEntityName();
+        if (\in_array($entity, self::GLOBAL_RECORDS, true)) {
+            return 'it applies to all sales channels';
+        }
+        if ($entity === 'rule' && !$command instanceof InsertCommand) {
+            return 'rules apply to all sales channels; you can create new ones';
+        }
+        if ($entity === 'rule_condition') {
+            $rule = $this->hex($command->getPayload()['rule_id'] ?? null);
+            if (!$command instanceof InsertCommand || $rule === null || !isset($newRules[$rule])) {
+                return 'rules apply to all sales channels; you can create new ones';
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -87,6 +87,8 @@ The principle: **with a scope, you only see what is connected to your sales chan
 | Sales channel settings (configuration values, SEO URLs, domains) | `salesChannelId`, or none for values that apply to all channels | of the user's channels, and those for all channels | of the user's channels only | hardening |
 | Shopping Experiences | none; used by categories, products, landing pages and default layout settings | used in one of the user's channels, created by the user's channels and still unused, or one of Shopware's locked layouts | used only within the user's channels (locked layouts never) | **2** |
 | Landing pages | `landing_page_sales_channel`, many to many | shown in one of the user's channels | shown only in the user's channels | **2** |
+| Promotions | `promotion_sales_channel`, many to many | assigned to one of the user's channels | assigned to the user's channels only; new ones need one of them | **2** |
+| Rules, payment and shipping methods | none; they apply to all channels | all | rules: only new ones; payment and shipping methods: never | **2** |
 
 Customers are the subtle case. A customer registered in channel B who also ordered in channel A is visible to the team of channel A, because they handle that customer's orders in A. But only the team of channel B may change the customer, because the account belongs to channel B.
 
@@ -184,6 +186,7 @@ A few core endpoints check records without the search events the read filter hoo
 | Dashboard turnover | raw SQL | `ScopedOrderAmountService`, see below |
 | Admin search (`POST /api/_admin/search`) | none: it searches through the repositories | – |
 | Clone (`POST /api/_action/clone/{entity}/{id}`) | reads the source without search events and writes the copy in the system scope: hidden records could be copied, the write guard doesn't see the copy | `CloneGuardSubscriber`: the source must be visible to the user, a product sold in their channels only; copies of layouts belong to their channels |
+| Promotion codes (`/api/_action/promotion/codes/replace-individual`, `add-individual`) | replacing deletes the old codes with plain SQL before the promotion is read | `PromotionGuardSubscriber`: only promotions assigned to the user's channels only |
 | Theme assignment and configuration (`/api/_action/theme/...`) | the assignment marks the pending theme with plain SQL and may switch after an asynchronous compilation; configuration routes check no privilege | `ThemeGuardSubscriber`: assign only to the user's channels; configure only themes used by their channels only |
 | Order state transitions | none: the state machine reads the order through the repository, other channels' orders are "not found" | – |
 | Store API proxy and admin order creation (`/api/_proxy/...`, `/api/_proxy-order/...`) | none: the channel is read through the repository | – |
@@ -246,6 +249,8 @@ Apply it on the role page (**Add preset: Order management**, then save) or with 
 
 Note that `document.deleter` also allows deleting document settings in *Settings → Documents*. The order module only offers deleting documents with it.
 
+**Marketing** (`marketing.json`) adds the promotion and layout roles (viewer, editor, creator, deleter). Shopware's promotion editor role also grants changing rules, payment and shipping methods (for the rule builder in the promotion conditions); the write guard lets limited users create rules but not change existing rules, payment or shipping methods.
+
 **Shopping Experiences** (`cms.json`) adds the layout roles (viewer, editor, creator, deleter). Note that Shopware's layout editor role also grants `category:update` and `landing_page:update` (for assigning layouts); the write guard limits both to the user's channels.
 
 Two more presets: **Category management** (`categories.json`) adds the category roles with layouts, SEO and product assignments, and **Product management** (`products.json`) adds the product roles (viewer, editor, creator, deleter) with everything they pull in: media, Shopping Experience layouts and the Commercial extensions of the product page (bundles, review summaries), plus the review roles (viewer, editor, deleter) for *Catalogue → Reviews*.
@@ -287,7 +292,8 @@ and copy `privileges` into `expandedPrivileges`. The script reads every administ
 
 | Gap | Effect | Planned fix |
 |---|---|---|
-| Promotions, newsletter recipients | not limited yet | iteration 2 |
+| Newsletter recipients | not limited yet | iteration 2 |
+| Rules created by limited users | can't be changed afterwards (rules have no sales channel) | owners like layouts |
 | Shopping Experience extensions of Commercial (scroll navigation, quick view, block rules) | not checked; they belong to layout sections and blocks | follow their layout |
 | Layout list actions (delete, set as default) on shared layouts | offered; the write guard and the settings guard refuse them | hide them in the list |
 | Settings pages beyond the preset (listing, documents, number ranges, plugin configuration) | only unrestricted users | one by one where a page is per channel |

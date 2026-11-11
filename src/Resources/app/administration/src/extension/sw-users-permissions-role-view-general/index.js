@@ -4,8 +4,9 @@ import productsPreset from '../../../../../config/presets/products.json';
 import categoriesPreset from '../../../../../config/presets/categories.json';
 import settingsPreset from '../../../../../config/presets/settings.json';
 import cmsPreset from '../../../../../config/presets/cms.json';
+import marketingPreset from '../../../../../config/presets/marketing.json';
 
-const PRESETS = [ordersPreset, productsPreset, categoriesPreset, cmsPreset, settingsPreset];
+const PRESETS = [ordersPreset, productsPreset, categoriesPreset, marketingPreset, cmsPreset, settingsPreset];
 
 Shopware.Component.override('sw-users-permissions-role-view-general', {
     template,

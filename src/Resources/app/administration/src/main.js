@@ -11,3 +11,4 @@ import './extension/sw-system-config';
 import './extension/sw-settings-seo';
 import './extension/sw-seo-url-template-card';
 import './extension/sw-cms-detail';
+import './extension/sw-promotion-v2-detail';

@@ -18,6 +18,9 @@ use Mn\SalesChannelScope\Scope\DbalRoleChannelLoader;
 use Mn\SalesChannelScope\Scope\RoleChannelLoader;
 use Mn\SalesChannelScope\Scope\ScopeRules;
 use Mn\SalesChannelScope\Subscriber\ChannelTotalsSubscriber;
+use Mn\SalesChannelScope\Subscriber\PromotionGuardSubscriber;
+use Mn\SalesChannelScope\Promotion\DbalPromotionSource;
+use Mn\SalesChannelScope\Promotion\PromotionSource;
 use Mn\SalesChannelScope\Subscriber\CloneGuardSubscriber;
 use Mn\SalesChannelScope\Subscriber\CmsGuardSubscriber;
 use Mn\SalesChannelScope\Subscriber\ImitateCustomerGuardSubscriber;
@@ -89,6 +92,12 @@ return static function (ContainerConfigurator $configurator): void {
 
     $services->set(CloneGuardSubscriber::class)
         ->args([service(ChannelScope::class), service(DefinitionInstanceRegistry::class), service(ScopeLookup::class), service(CmsPages::class)])
+        ->tag('kernel.event_subscriber');
+
+    $services->set(DbalPromotionSource::class)->args([service(Connection::class)]);
+    $services->alias(PromotionSource::class, DbalPromotionSource::class);
+    $services->set(PromotionGuardSubscriber::class)
+        ->args([service(ChannelScope::class), service(PromotionSource::class)])
         ->tag('kernel.event_subscriber');
 
     $services->set(ThemeGuardSubscriber::class)

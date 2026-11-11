@@ -14,14 +14,16 @@
                 "products": "Produktverwaltung",
                 "categories": "Kategorieverwaltung",
                 "settings": "Verkaufskanal-Einstellungen",
-                "cms": "Erlebniswelten"
+                "cms": "Erlebniswelten",
+                "marketing": "Marketing"
             },
             "help": {
                 "orders": "Fügt alles hinzu, was das Bestellmodul braucht, auch Dokumente (erstellen, hochladen, herunterladen, versenden, löschen), Erstattungen, Rabatte und Zahlungsstatus. Bestehende Berechtigungen bleiben. Hinweis: Dokumente löschen erfordert die Berechtigung \"Löschen\" der Dokument-Einstellungen, die auch das Löschen von Dokumentvorlagen erlaubt.",
                 "products": "Fügt alles hinzu, was das Produktmodul braucht, auch Medien, Erlebniswelten-Layouts, Bewertungen und die Commercial-Erweiterungen der Produktseite (Bundles, Bewertungszusammenfassungen). Außerdem das Bewertungsmodul (Kataloge → Bewertungen): Bewertungen der eigenen Verkaufskanäle ansehen, freigeben, bearbeiten und löschen. Bestehende Berechtigungen bleiben.",
                 "categories": "Fügt alles hinzu, was das Kategoriemodul braucht, auch Layouts, SEO-Einstellungen und Produktzuordnungen. Bestehende Berechtigungen bleiben.",
                 "settings": "Fügt die eigenen Verkaufskanäle der Rolle hinzu (Verkaufskanäle im Hauptmenü) und die Einstellungsseiten mit Verkaufskanal-Auswahl (Grundinformationen, Warenkorb, Login & Registrierung, Newsletter, Sitemap, SEO-URL-Templates), nur für die eigenen Verkaufskanäle der Rolle. Einstellungen für alle Kanäle, die übrigen Einstellungsseiten sowie das Anlegen und Löschen von Verkaufskanälen bleiben unbeschränkten Benutzern vorbehalten. Bestehende Berechtigungen bleiben.",
-                "cms": "Fügt alles hinzu, was das Erlebniswelten-Modul braucht (Layouts ansehen, bearbeiten, anlegen, löschen, mit Medien). Beschränkte Benutzer bearbeiten die Layouts ihrer eigenen Verkaufskanäle; geteilte und gesperrte Layouts sind schreibgeschützt. Bestehende Berechtigungen bleiben."
+                "cms": "Fügt alles hinzu, was das Erlebniswelten-Modul braucht (Layouts ansehen, bearbeiten, anlegen, löschen, mit Medien). Beschränkte Benutzer bearbeiten die Layouts ihrer eigenen Verkaufskanäle; geteilte und gesperrte Layouts sind schreibgeschützt. Bestehende Berechtigungen bleiben.",
+                "marketing": "Fügt Promotions und Erlebniswelten hinzu, für die eigenen Verkaufskanäle der Rolle: Promotions (Rabatte, Codes, Bedingungen) und Layouts ansehen, bearbeiten, anlegen und löschen; mit anderen Kanälen geteilte sind schreibgeschützt. Bestehende Berechtigungen bleiben."
             }
         },
         "product": {

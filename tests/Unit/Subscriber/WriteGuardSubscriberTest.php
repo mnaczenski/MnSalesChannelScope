@@ -30,6 +30,9 @@ use Shopware\Core\Framework\DataAbstractionLayer\Write\WriteContext;
 use Shopware\Core\Framework\Uuid\Uuid;
 use Shopware\Core\System\SalesChannel\SalesChannelDefinition;
 use Shopware\Core\System\SystemConfig\SystemConfigDefinition;
+use Shopware\Core\Content\Rule\RuleDefinition;
+use Shopware\Core\Content\Rule\Aggregate\RuleCondition\RuleConditionDefinition;
+use Shopware\Core\Checkout\Payment\PaymentMethodDefinition;
 use Shopware\Commercial\ReviewSummary\Entity\ProductReviewSummary\ProductReviewSummaryDefinition;
 use Shopware\Core\System\SalesChannel\Aggregate\SalesChannelCountry\SalesChannelCountryDefinition;
 use Shopware\Core\System\SalesChannel\Aggregate\SalesChannelAnalytics\SalesChannelAnalyticsDefinition;
@@ -270,6 +273,17 @@ class WriteGuardSubscriberTest extends TestCase
         static::assertSame(['product_review_summary'], $this->denied([$this->insert($summary, Uuid::randomHex(), ['sales_channel_id' => Uuid::fromHexToBytes(Ids::EN)])]));
     }
 
+    public function testOnlyNewRulesAndNoPaymentMethods(): void
+    {
+        $rule = Uuid::randomHex();
+        $condition = fn (string $ruleId) => $this->insert($this->definition(RuleConditionDefinition::class), Uuid::randomHex(), ['rule_id' => Uuid::fromHexToBytes($ruleId)]);
+
+        static::assertSame([], $this->denied([$this->insert($this->definition(RuleDefinition::class), $rule, ['name' => 'x']), $condition($rule)]));
+        static::assertSame(['rule'], $this->denied([$this->update($this->definition(RuleDefinition::class), $rule, ['name' => 'y'])]));
+        static::assertSame(['rule_condition'], $this->denied([$condition($rule)]));
+        static::assertSame(['payment_method'], $this->denied([$this->update($this->definition(PaymentMethodDefinition::class), Uuid::randomHex(), ['active' => 0])]));
+    }
+
     public function testProductSortingsApplyToAllChannels(): void
     {
         static::assertSame(['product_sorting'], $this->denied([$this->update($this->definition(ProductSortingDefinition::class), Uuid::randomHex(), ['priority' => 1])]));
@@ -332,7 +346,7 @@ class WriteGuardSubscriberTest extends TestCase
     {
         static $registry = null;
         $registry ??= new StaticDefinitionInstanceRegistry(
-            [OrderDefinition::class, OrderLineItemDefinition::class, CustomerDefinition::class, CustomerAddressDefinition::class, SalesChannelDefinition::class, AclRoleSalesChannelDefinition::class, ProductDefinition::class, ProductPriceDefinition::class, ProductVisibilityDefinition::class, ProductReviewDefinition::class, SystemConfigDefinition::class, ProductSortingDefinition::class, LandingPageDefinition::class, LandingPageSalesChannelDefinition::class, SalesChannelCountryDefinition::class, SalesChannelAnalyticsDefinition::class, ProductReviewSummaryDefinition::class],
+            [OrderDefinition::class, OrderLineItemDefinition::class, CustomerDefinition::class, CustomerAddressDefinition::class, SalesChannelDefinition::class, AclRoleSalesChannelDefinition::class, ProductDefinition::class, ProductPriceDefinition::class, ProductVisibilityDefinition::class, ProductReviewDefinition::class, SystemConfigDefinition::class, ProductSortingDefinition::class, LandingPageDefinition::class, LandingPageSalesChannelDefinition::class, SalesChannelCountryDefinition::class, SalesChannelAnalyticsDefinition::class, ProductReviewSummaryDefinition::class, RuleDefinition::class, RuleConditionDefinition::class, PaymentMethodDefinition::class],
             Validation::createValidator(),
             $this->createMock(EntityWriteGatewayInterface::class),
         );

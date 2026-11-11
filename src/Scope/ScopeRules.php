@@ -31,6 +31,9 @@ class ScopeRules
     ) {
     }
 
+    /** Entities that belong to a promotion (association "promotion"). */
+    public const PROMOTION_CHILDREN = ['promotion_discount', 'promotion_setgroup', 'promotion_individual_code', 'promotion_translation'];
+
     /** Entities that belong to a landing page (column landing_page_id / association "landingPage"). */
     public const LANDING_PAGE_CHILDREN = ['landing_page_translation'];
 
@@ -112,6 +115,10 @@ class ScopeRules
             $entity === 'category' => $this->categories?->readFilter($salesChannelIds),
             $entity === 'system_config' => $this->systemConfig($salesChannelIds),
             $entity === 'landing_page' => new EqualsAnyFilter('salesChannels.id', $salesChannelIds),
+            $entity === 'promotion' => new EqualsAnyFilter('salesChannels.salesChannelId', $salesChannelIds),
+            $entity === 'promotion_sales_channel' => new EqualsAnyFilter('salesChannelId', $salesChannelIds),
+            \in_array($entity, self::PROMOTION_CHILDREN, true) => new EqualsAnyFilter('promotion.salesChannels.salesChannelId', $salesChannelIds),
+            $entity === 'promotion_discount_prices' => new EqualsAnyFilter('promotionDiscount.promotion.salesChannels.salesChannelId', $salesChannelIds),
             $entity === 'product_review_summary_translation' => new EqualsAnyFilter('productReviewSummary.salesChannelId', $salesChannelIds),
             \in_array($entity, self::CHANNEL_MAPPINGS, true) => new EqualsAnyFilter('salesChannelId', $salesChannelIds),
             $entity === 'sales_channel_analytics' => new EqualsAnyFilter('salesChannel.id', $salesChannelIds),

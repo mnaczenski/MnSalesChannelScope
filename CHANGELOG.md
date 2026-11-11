@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.0
+
+- Promotions: a promotion belongs to the sales channels it is assigned to. Limited users see promotions of their channels and change those assigned to their channels only; discounts (with prices and rules), set groups, individual codes, conditions, persona customers and translations follow their promotion. New promotions need an assignment to one of their channels in the same save; assignments only to their channels. Shopware's form for a new promotion has no sales channels, so a limited user's new promotion starts with all of their channels (`sw-promotion-v2-detail`). Replacing or adding individual codes (`/api/_action/promotion/codes/...`, which deletes the old codes with plain SQL) only for such promotions (`PromotionGuardSubscriber`).
+- Rules, payment and shipping methods: Shopware's promotion editor role can change them (for the rule builder in the promotion conditions), but they apply to all sales channels. Limited users may create new rules with their conditions, not change existing ones; payment and shipping methods and Commercial's dynamic access rules not at all.
+- New permission preset *Marketing*: Promotions and Shopping Experiences.
+
 ## 0.9.0
 
 - The *Product management* preset also adds Shopware's review roles (viewer, editor, deleter): *Catalogue → Reviews* with the reviews of the role's sales channels; approving needs `product_review:update`, which the product roles don't grant.

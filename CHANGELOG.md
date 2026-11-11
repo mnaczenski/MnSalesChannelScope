@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.0
+
+Hardening: paths around the read filter.
+
+- *Log in as customer* (`POST /api/_proxy/generate-imitate-customer-token`): Shopware checks only that the customer and the sales channel exist, without the search events the read filter hooks into, so a limited user could get a storefront login for customers of other channels. Now the channel must be one of theirs and the customer registered in or bound to one of their channels (a customer who only ordered there would show orders of other channels in the storefront account).
+- Sales channel settings: configuration values (`system_config`, where payment credentials can live), SEO URLs and domains of other channels are hidden. Limited users only change those of their own channels, none that apply to all channels.
+- Settings pages opened by URL redirect limited users to the dashboard.
+- Configuration values: limited users only read Shopware's own settings (`core.*`), without credentials and installation-wide domains (mailer, store and license, apps, services, updates, usage data, webhooks). Before, every value for all channels was readable with `system_config:read`, which the order preset includes.
+- New permission preset *Sales channel settings*: the settings pages with a sales channel switch (basic information, cart, login & registration, newsletter, sitemap) for the role's own channels, plus the SEO URL templates of those channels. The settings API (`/api/_action/system-config`, plain SQL, not covered by the write guard) is guarded by `SystemConfigGuardSubscriber`; the overview only shows these pages, and the channel switch has no *All Sales Channels* option. Product sortings (part of Shopware's *Settings* role) can't be changed by limited users.
+
 ## 0.5.2
 
 - Limited users don't see the *Settings* entry in the main menu. Shopware shows it to every user; for a limited user it only led to settings of all sales channels (such as the document settings the order preset grants read access to). The settings pages stay protected by their own privileges.

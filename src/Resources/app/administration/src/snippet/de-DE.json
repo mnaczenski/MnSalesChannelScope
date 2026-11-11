@@ -12,12 +12,14 @@
             "names": {
                 "orders": "Bestellverwaltung",
                 "products": "Produktverwaltung",
-                "categories": "Kategorieverwaltung"
+                "categories": "Kategorieverwaltung",
+                "settings": "Verkaufskanal-Einstellungen"
             },
             "help": {
                 "orders": "Fügt alles hinzu, was das Bestellmodul braucht, auch Dokumente (erstellen, hochladen, herunterladen, versenden, löschen), Erstattungen, Rabatte und Zahlungsstatus. Bestehende Berechtigungen bleiben. Hinweis: Dokumente löschen erfordert die Berechtigung \"Löschen\" der Dokument-Einstellungen, die auch das Löschen von Dokumentvorlagen erlaubt.",
                 "products": "Fügt alles hinzu, was das Produktmodul braucht, auch Medien, Erlebniswelten-Layouts, Bewertungen und die Commercial-Erweiterungen der Produktseite (Bundles, Bewertungszusammenfassungen). Bestehende Berechtigungen bleiben.",
-                "categories": "Fügt alles hinzu, was das Kategoriemodul braucht, auch Layouts, SEO-Einstellungen und Produktzuordnungen. Bestehende Berechtigungen bleiben."
+                "categories": "Fügt alles hinzu, was das Kategoriemodul braucht, auch Layouts, SEO-Einstellungen und Produktzuordnungen. Bestehende Berechtigungen bleiben.",
+                "settings": "Fügt die Einstellungsseiten mit Verkaufskanal-Auswahl hinzu (Grundinformationen, Warenkorb, Login & Registrierung, Newsletter, Sitemap, SEO-URL-Templates), nur für die eigenen Verkaufskanäle der Rolle. Einstellungen für alle Kanäle und die übrigen Einstellungsseiten bleiben unbeschränkten Benutzern vorbehalten. Bestehende Berechtigungen bleiben."
             }
         },
         "product": {

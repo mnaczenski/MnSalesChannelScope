@@ -1,34 +1,49 @@
 import loadChannelScope from '../../service/channel-scope';
+import { isAllowedSettingsRoute, isSettingsRoute } from '../../service/settings-scope';
 
 /**
- * Limited users don't get the Settings entry in the main menu. Shopware shows
- * it to every user (it has no privilege of its own); for a limited user it
- * would only lead to settings of all sales channels, such as the document
- * settings the order module needs read access to.
- *
- * The settings pages themselves stay protected by their own privileges.
+ * Users limited to sales channels only get the sales channel specific
+ * settings pages (service/settings-scope.js), and only with the role's
+ * Settings permission (preset "Sales channel settings"). Without it, the
+ * Settings entry is hidden; other settings pages opened by URL redirect to
+ * the dashboard. The API checks every request on its own.
  */
 Shopware.Component.override('sw-admin-menu', {
+    inject: ['acl'],
+
     data() {
-        return {
-            mnScope: null,
-        };
+        return { mnScope: null };
     },
 
     computed: {
         navigationEntries() {
             const entries = this.$super('navigationEntries');
-            if (!this.mnScope?.restricted) {
+            if (!this.mnScope?.restricted || this.mnCanUseSettings) {
                 return entries;
             }
 
-            return entries.filter((entry) => entry.id !== 'sw-settings' && entry.parent !== 'sw-settings' && entry.path !== 'sw.settings.index');
+            return entries.filter((entry) => entry.id !== 'sw-settings'
+                && entry.parent !== 'sw-settings'
+                && entry.path !== 'sw.settings.index');
+        },
+
+        mnCanUseSettings() {
+            return this.acl.can('system.system_config');
         },
     },
 
     created() {
         loadChannelScope().then((scope) => {
             this.mnScope = scope;
+            if (!scope?.restricted) {
+                return;
+            }
+
+            const blocked = (route) => isSettingsRoute(route) && !(this.mnCanUseSettings && isAllowedSettingsRoute(route));
+            this.$router.beforeEach((to) => (blocked(to) ? { name: 'sw.dashboard.index' } : true));
+            if (blocked(this.$route)) {
+                this.$router.replace({ name: 'sw.dashboard.index' });
+            }
         });
     },
 });

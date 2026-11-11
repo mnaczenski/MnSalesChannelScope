@@ -19,6 +19,8 @@ final class StaticScopeLookup implements ScopeLookup
      * @param array<string, string> $productChildren child id => product id
      * @param array<string, array{product: string, channel: string}> $channelRecords visibility or main category id
      * @param array<string, string> $reviews review id => sales channel id
+     * @param array<string, string> $settings setting id => sales channel id ('' for all channels)
+     * @param array<string, string> $configKeys system_config id => configuration key
      */
     public function __construct(
         private readonly array $orders = [],
@@ -29,6 +31,8 @@ final class StaticScopeLookup implements ScopeLookup
         private readonly array $productChildren = [],
         private readonly array $channelRecords = [],
         private readonly array $reviews = [],
+        private readonly array $settings = [],
+        private readonly array $configKeys = [],
     ) {
     }
 
@@ -57,6 +61,16 @@ final class StaticScopeLookup implements ScopeLookup
     public function reviewChannel(array $primaryKey): ?string
     {
         return $this->reviews[Uuid::fromBytesToHex($primaryKey['id'])] ?? null;
+    }
+
+    public function settingChannel(string $entity, array $primaryKey): ?string
+    {
+        return $this->settings[Uuid::fromBytesToHex($primaryKey['id'])] ?? null;
+    }
+
+    public function configKey(array $primaryKey): ?string
+    {
+        return $this->configKeys[Uuid::fromBytesToHex($primaryKey['id'])] ?? null;
     }
 
     public function orderChannel(string $orderId, string $versionId): ?string

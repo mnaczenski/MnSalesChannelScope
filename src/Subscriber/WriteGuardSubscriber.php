@@ -6,6 +6,7 @@ use Mn\SalesChannelScope\Category\CategoryTrees;
 use Mn\SalesChannelScope\Entity\AclRoleSalesChannelDefinition;
 use Mn\SalesChannelScope\Exception\ChannelScopeException;
 use Mn\SalesChannelScope\Scope\ChannelScope;
+use Mn\SalesChannelScope\Scope\ConfigRules;
 use Mn\SalesChannelScope\Scope\ScopeRules;
 use Mn\SalesChannelScope\Write\ScopeLookup;
 use Shopware\Core\Defaults;
@@ -37,7 +38,11 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  *   below such a category; no deleting or moving of a subtree that holds
  *   another channel's entry category; products can only be assigned to
  *   categories the user sees;
- * - sales channel entry categories: only categories the user may edit.
+ * - sales channel entry categories: only categories the user may edit;
+ * - sales channel settings (configuration, SEO URLs and templates, domains):
+ *   only those of their channels, none that apply to all channels;
+ *   configuration only on the pages of the settings preset (ConfigRules);
+ * - product sortings: they apply to all channels.
  */
 class WriteGuardSubscriber implements EventSubscriberInterface
 {
@@ -385,6 +390,33 @@ class WriteGuardSubscriber implements EventSubscriberInterface
             }
             if (\array_key_exists('sales_channel_id', $payload) && !isset($allowed[$this->hex($payload['sales_channel_id']) ?? ''])) {
                 return 'reviews can only belong to your sales channels';
+            }
+
+            return null;
+        }
+
+        if ($entity === 'product_sorting') {
+            return 'product sortings apply to all sales channels';
+        }
+
+        if ($entity === 'system_config') {
+            $key = \array_key_exists('configuration_key', $payload)
+                ? (string) $payload['configuration_key']
+                : ($insert ? '' : (string) $this->lookup->configKey($primaryKey));
+            if (!ConfigRules::isEditable($key)) {
+                return 'this setting can only be changed by unrestricted users';
+            }
+        }
+
+        if (\in_array($entity, ScopeRules::CHANNEL_SETTINGS, true)) {
+            if (!$insert) {
+                $current = $this->lookup->settingChannel($entity, $primaryKey);
+                if ($current === null || !isset($allowed[$current])) {
+                    return $current === '' ? 'settings for all sales channels can only be changed by unrestricted users' : 'the setting belongs to another sales channel';
+                }
+            }
+            if (($insert || \array_key_exists('sales_channel_id', $payload)) && !isset($allowed[$this->hex($payload['sales_channel_id'] ?? null) ?? ''])) {
+                return 'settings can only be stored for your sales channels';
             }
 
             return null;

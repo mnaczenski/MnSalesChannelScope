@@ -127,6 +127,25 @@ class DbalScopeLookup implements ScopeLookup
         return \is_string($value) ? $value : null;
     }
 
+    public function settingChannel(string $entity, array $primaryKey): ?string
+    {
+        if (!\in_array($entity, ScopeRules::CHANNEL_SETTINGS, true)) {
+            return null;
+        }
+        [$where, $params] = $this->where('setting', $primaryKey);
+        $value = $this->connection->fetchOne('SELECT IFNULL(LOWER(HEX(sales_channel_id)), \'\') FROM `' . $entity . '` setting WHERE ' . $where, $params);
+
+        return \is_string($value) ? $value : null;
+    }
+
+    public function configKey(array $primaryKey): ?string
+    {
+        [$where, $params] = $this->where('config', $primaryKey);
+        $value = $this->connection->fetchOne('SELECT configuration_key FROM system_config config WHERE ' . $where, $params);
+
+        return \is_string($value) ? $value : null;
+    }
+
     /**
      * @return list<string>
      */

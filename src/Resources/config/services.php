@@ -15,6 +15,8 @@ use Mn\SalesChannelScope\Scope\DbalRoleChannelLoader;
 use Mn\SalesChannelScope\Scope\RoleChannelLoader;
 use Mn\SalesChannelScope\Scope\ScopeRules;
 use Mn\SalesChannelScope\Subscriber\ChannelTotalsSubscriber;
+use Mn\SalesChannelScope\Subscriber\ImitateCustomerGuardSubscriber;
+use Mn\SalesChannelScope\Subscriber\SystemConfigGuardSubscriber;
 use Mn\SalesChannelScope\Subscriber\ReadFilterSubscriber;
 use Mn\SalesChannelScope\Subscriber\WriteGuardSubscriber;
 use Mn\SalesChannelScope\Totals\ChannelTotals;
@@ -61,6 +63,14 @@ return static function (ContainerConfigurator $configurator): void {
     $services->alias(ScopeLookup::class, DbalScopeLookup::class);
     $services->set(WriteGuardSubscriber::class)
         ->args([service(ChannelScope::class), service(ScopeLookup::class), service(CategoryTrees::class)])
+        ->tag('kernel.event_subscriber');
+
+    $services->set(ImitateCustomerGuardSubscriber::class)
+        ->args([service(ChannelScope::class), service(ScopeLookup::class)])
+        ->tag('kernel.event_subscriber');
+
+    $services->set(SystemConfigGuardSubscriber::class)
+        ->args([service(ChannelScope::class)])
         ->tag('kernel.event_subscriber');
 
     $services->set(ChannelScopeController::class)

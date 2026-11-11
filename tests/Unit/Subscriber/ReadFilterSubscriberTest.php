@@ -7,6 +7,11 @@ use Mn\SalesChannelScope\Subscriber\ReadFilterSubscriber;
 use Mn\SalesChannelScope\Tests\Ids;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\PrefixFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\NotFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\AndFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Core\System\SystemConfig\SystemConfigDefinition;
 use Shopware\Core\Checkout\Customer\Aggregate\CustomerAddress\CustomerAddressDefinition;
 use Shopware\Core\Checkout\Customer\CustomerDefinition;
 use Shopware\Core\Checkout\Order\Aggregate\OrderCustomer\OrderCustomerDefinition;
@@ -37,6 +42,7 @@ class ReadFilterSubscriberTest extends TestCase
         $this->registry = new StaticDefinitionInstanceRegistry(
             [
                 OrderDefinition::class,
+                SystemConfigDefinition::class,
                 OrderLineItemDefinition::class,
                 CustomerDefinition::class,
                 CustomerAddressDefinition::class,
@@ -72,6 +78,21 @@ class ReadFilterSubscriberTest extends TestCase
             ['salesChannelId', 'boundSalesChannelId', 'orderCustomers.order.salesChannelId'],
             $this->fields($filter),
         );
+    }
+
+    public function testSettingsOfOtherChannelsAndHiddenDomainsAreHidden(): void
+    {
+        $filter = $this->search(SystemConfigDefinition::class)->getFilters()[0] ?? null;
+
+        static::assertInstanceOf(AndFilter::class, $filter);
+        [$channels, $core, $hidden] = $filter->getQueries();
+        static::assertEquals(new OrFilter([
+            new EqualsAnyFilter('salesChannelId', [Ids::DE]),
+            new EqualsFilter('salesChannelId', null),
+        ]), $channels);
+        static::assertEquals(new PrefixFilter('configurationKey', 'core.'), $core);
+        static::assertInstanceOf(NotFilter::class, $hidden);
+        static::assertContainsEquals(new PrefixFilter('configurationKey', 'core.mailerSettings.'), $hidden->getQueries());
     }
 
     public function testToManyAssociationsAreFilteredToo(): void

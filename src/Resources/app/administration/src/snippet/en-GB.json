@@ -12,12 +12,14 @@
             "names": {
                 "orders": "Order management",
                 "products": "Product management",
-                "categories": "Category management"
+                "categories": "Category management",
+                "settings": "Sales channel settings"
             },
             "help": {
                 "orders": "Adds everything the order module needs, including documents (create, upload, download, send, delete), refunds, discounts and payment states. Existing permissions stay. Note: deleting documents needs the Documents settings permission \"delete\", which also allows deleting document settings.",
                 "products": "Adds everything the product module needs, including media, Shopping Experience layouts, reviews and the Commercial extensions on the product page (bundles, review summaries). Existing permissions stay.",
-                "categories": "Adds everything the category module needs, including layouts, SEO settings and product assignments. Existing permissions stay."
+                "categories": "Adds everything the category module needs, including layouts, SEO settings and product assignments. Existing permissions stay.",
+                "settings": "Adds the settings pages with a sales channel switch (basic information, cart, login & registration, newsletter, sitemap, SEO URL templates), for the role's own sales channels only. Settings for all channels and the other settings pages stay with unrestricted users. Existing permissions stay."
             }
         },
         "product": {

@@ -81,6 +81,7 @@ The principle: **with a scope, you only see what is connected to your sales chan
 | Product details (prices, media, visibilities, configurator, cross-selling, downloads, search keywords) | through their product | as their product | as their product | **2** |
 | Product reviews | `product_review.salesChannelId` | its channel is the user's | its channel is the user's | **2** |
 | Categories | none; channels point to entry categories (navigation, footer, service), `category.path` holds the ancestors | in a tree of one of the user's channels, plus the ancestors of their entry categories; other trees and trees outside every channel are hidden | it belongs to the user's channels only; shared trees and ancestors are read-only | **2** |
+| Sales channel settings (configuration values, SEO URLs, domains) | `salesChannelId`, or none for values that apply to all channels | of the user's channels, and those for all channels | of the user's channels only | hardening |
 | Shopping Experiences | none; used by categories, products, landing pages and per-channel defaults | used by something the user sees, or created by the user's channels and still unused | used only within the user's channels | 2 (next) |
 
 Customers are the subtle case. A customer registered in channel B who also ordered in channel A is visible to the team of channel A, because they handle that customer's orders in A. But only the team of channel B may change the customer, because the account belongs to channel B.
@@ -156,7 +157,8 @@ Associations need extra care: Shopware loads to-many associations (a customer's 
 - changes to product reviews of other channels.
 
 - changes to categories (and their translations and tags) that also belong to other channels' trees or are only ancestors of the user's entry categories; new categories below such categories, and root categories; deleting or moving a subtree that holds another channel's entry category;
-- assigning products to categories the user can't see; setting a sales channel's entry categories to categories the user may not edit.
+- assigning products to categories the user can't see; setting a sales channel's entry categories to categories the user may not edit;
+- configuration values (`system_config`), SEO URLs and domains of other channels, and those that apply to all channels.
 
 Visibilities of the user's own channels may change on every product they see, also on shared ones: adding or removing a product from their own channel is their call.
 
@@ -167,6 +169,20 @@ A refusal is reported as Shopware's write error (HTTP 400) containing:
 ```json
 { "code": "MN_CHANNEL_SCOPE__WRITE_DENIED", "detail": "Your role may not change this order: the order belongs to another sales channel" }
 ```
+
+### Paths around the data layer
+
+A few core endpoints check records without the search events the read filter hooks into. Each one needs its own guard:
+
+| Endpoint | Gap | Guard |
+|---|---|---|
+| *Log in as customer* (`POST /api/_proxy/generate-imitate-customer-token`) | validates the customer and channel with a raw existence check: a limited user got a storefront login for another channel's customer | `ImitateCustomerGuardSubscriber` adds constraints to the request's validation (`framework.validation.impersonation.generate-token`): the channel must be the user's, the customer registered in or bound to one of the user's channels |
+| Dashboard turnover | raw SQL | `ScopedOrderAmountService`, see below |
+| Admin search (`POST /api/_admin/search`) | none: it searches through the repositories | – |
+| Order state transitions | none: the state machine reads the order through the repository, other channels' orders are "not found" | – |
+| Store API proxy and admin order creation (`/api/_proxy/...`, `/api/_proxy-order/...`) | none: the channel is read through the repository | – |
+| Import/Export | the presets don't grant it; an export job runs with the user's context, so the read filter applies (not tested end to end) | – |
+| Admin search with OpenSearch (`SHOPWARE_ADMIN_ES_ENABLED`) | results are loaded through the repository and filtered, but the hit count comes from the search index (not tested) | count visible hits |
 
 ### Totals
 
@@ -182,7 +198,11 @@ The dashboard's turnover chart comes from `OrderAmountService`, which queries th
 - `sw-users-permissions-role-view-general`: the sales channel picker and the preset button.
 - `sw-product-detail`: shared products show a "Shared product: read-only" hint, and saving and every field are disabled: while a shared product is open, Shopware's `acl` service denies the product editor, creator and deleter roles (`registerReadOnlyGuard`), so Shopware's own fields disable themselves as for a view-only user. New products start with the user's own sales channels selected: the default sales channels (*Settings → Products*) that are the user's, or all of the user's channels when none of the defaults is theirs.
 - `sw-category-detail` and `sw-category-view`: shared categories show a "Shared category: read-only" hint above the tabs, and saving and every field are disabled the same way.
-- `sw-admin-menu`: limited users don't see the *Settings* entry (Shopware shows it to every user; the settings pages keep their own privileges).
+- `sw-admin-menu`: limited users without the *Sales channel settings* preset don't see the *Settings* entry (Shopware shows it to every user). Settings pages outside the preset redirect to the dashboard, also when opened by URL.
+- `sw-settings-index`: limited users only see the tiles of the preset's pages.
+- `sw-sales-channel-switch`: limited users get no *All Sales Channels* option; the switch starts with their first channel.
+- `sw-system-config` and `sw-seo-url-template-card`: load the values and templates "for all sales channels" before a channel's own (they are shown as inherited values and are the blueprint for a channel's templates). Shopware relies on the switch starting with *All Sales Channels*.
+- `sw-settings-seo`: hides the "redirect to canonical URL" card for limited users (it has no sales channel switch and always saves the value for all channels).
 - `GET /api/_action/mn-channel-scope/me` returns `{ restricted, salesChannelIds, categoryEntryPoints: { own, foreign } }` for these screens. It only drives the UI; the server enforces the rules.
 
 ## Permission preset: Order management
@@ -210,6 +230,29 @@ Note that `document.deleter` also allows deleting document settings in *Settings
 
 Two more presets: **Category management** (`categories.json`) adds the category roles with layouts, SEO and product assignments, and **Product management** (`products.json`) adds the product roles (viewer, editor, creator, deleter) with everything they pull in: media, Shopping Experience layouts and the Commercial extensions of the product page (bundles, review summaries).
 
+## Permission preset: Sales channel settings
+
+Shopware keeps one set of configuration values per sales channel, with the values "for all sales channels" as the fallback. The preset `settings.json` gives a limited user the settings pages that have a sales channel switch, for their own channels:
+
+| Page | Configuration domain |
+|---|---|
+| Basic information | `core.basicInformation` |
+| Cart | `core.cart` |
+| Login & registration | `core.loginRegistration` |
+| Newsletter | `core.newsletter` |
+| Sitemap | `core.sitemap` |
+| SEO | URL templates (`seo_url_template`) of their channels; the "redirect to canonical URL" card applies to all channels and is hidden |
+
+The pages need Shopware's *Settings* role (`system.system_config`), which is not limited to channels or pages. The plugin narrows it down:
+
+- **Settings API** (`SystemConfigGuardSubscriber`): the pages read and save through `/api/_action/system-config`, which writes with plain SQL and bypasses the write guard. For a limited user, a request may only read Shopware's own settings (`core.*`) of their channels or for all channels (shown as inherited values). Credentials and installation-wide settings are hidden (mailer, store and license, apps, services, updates, usage data, webhooks, see `ConfigRules::HIDDEN_DOMAINS`), and so are plugin settings. It may only save the domains in the table above, and only for their own channels. A refusal is HTTP 403 with `MN_CHANNEL_SCOPE__SETTINGS_DENIED`.
+- **Entity API**: the read filter applies the same rule to `system_config` records; the write guard refuses other domains, values for all channels, and product sortings (the role grants them for the listing page, but they apply to all channels). SEO URL templates are treated like other channel settings.
+- **Administration**: only the preset's pages appear in the settings overview, the others redirect to the dashboard, and the channel switch has no *All Sales Channels* option.
+
+On the SEO page, the URL templates are saved through the entity API (the write guard allows only the user's channels, not the defaults for all channels). Template previews, canonical URLs and custom URLs read the sales channel through the repository, so other channels are "not found".
+
+Pages that aren't per channel, or that change records shared by all channels (listing sortings, documents, number ranges, plugin configuration), stay with unrestricted users.
+
 After a Shopware, Commercial or plugin update, check whether the permissions changed:
 
 ```bash
@@ -222,7 +265,8 @@ and copy `privileges` into `expandedPrivileges`. The script reads every administ
 
 | Gap | Effect | Planned fix |
 |---|---|---|
-| Shopping Experiences, promotions, landing pages, newsletter recipients, per-channel settings | not limited yet | iteration 2 |
+| Shopping Experiences, promotions, landing pages, newsletter recipients | not limited yet | iteration 2 |
+| Settings pages beyond the preset (listing, documents, number ranges, plugin configuration) | only unrestricted users | one by one where a page is per channel |
 | Category tree actions (add, delete, drag and drop in the tree) | not marked read-only; the write guard refuses the change | mark them in the tree |
 | Category child counts | the tree shows an expand arrow for categories whose children are all hidden | count visible children |
 | Product screens other than the detail page (bulk edit, variant generator, list inline edit) | not marked read-only; the write guard refuses the change | mark them in the UI |
@@ -230,8 +274,8 @@ and copy `privileges` into `expandedPrivileges`. The script reads every administ
 | Filtering and sorting by customer or product totals | uses Shopware's stored totals across all channels | per-channel totals table |
 | Many-to-one joins | a joined record is still shown where another entity references it (for example a review's customer) | filter the root entity; accept the joined label |
 | Other raw SQL endpoints (statistics, reports) | may show figures of all channels | decorate one by one |
-| Admin search hit counts | results are filtered, counts unchecked | check and fix |
-| Import/Export, Flow Builder, mail previews | not checked | iteration 2 |
+| Admin search hit counts with OpenSearch | results are filtered, the count comes from the index | count visible hits |
+| Import/Export (when granted), Flow Builder, mail previews | not tested end to end | iteration 2 |
 | Integrations (API keys) | never limited | own channel setting for integrations |
 | Commercial features (B2B, Return Management, Subscriptions, Multi-Warehouse) | their entities are not limited | iteration 3 |
 | Performance | the customer rule adds two joins (`orderCustomers.order`) per customer search | cache or denormalise if needed |

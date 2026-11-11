@@ -63,4 +63,20 @@ interface ScopeLookup
      * @param array<string, string> $primaryKey
      */
     public function reviewChannel(array $primaryKey): ?string;
+
+    /**
+     * Sales channel id (hex) of a stored record of a sales channel setting
+     * (ScopeRules::CHANNEL_SETTINGS): '' when it applies to all channels,
+     * null when it doesn't exist.
+     *
+     * @param array<string, string> $primaryKey
+     */
+    public function settingChannel(string $entity, array $primaryKey): ?string;
+
+    /**
+     * Configuration key of a stored system_config record, null when it doesn't exist.
+     *
+     * @param array<string, string> $primaryKey
+     */
+    public function configKey(array $primaryKey): ?string;
 }

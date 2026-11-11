@@ -1,0 +1,32 @@
+{
+    "name": "settings",
+    "label": {
+        "en-GB": "Sales channel settings",
+        "de-DE": "Verkaufskanal-Einstellungen"
+    },
+    "description": {
+        "en-GB": "The settings pages with a sales channel switch, for the role's own sales channels: basic information, cart, login & registration, newsletter, sitemap, SEO URL templates. Settings for all channels, plugin settings and pages without a sales channel switch stay with unrestricted users.",
+        "de-DE": "Die Einstellungsseiten mit Verkaufskanal-Auswahl, für die eigenen Verkaufskanäle der Rolle: Grundinformationen, Warenkorb, Login & Registrierung, Newsletter, Sitemap, SEO-URL-Templates. Einstellungen für alle Kanäle, Plugin-Einstellungen und Seiten ohne Verkaufskanal-Auswahl bleiben unbeschränkten Benutzern vorbehalten."
+    },
+    "roles": [
+        "system.system_config"
+    ],
+    "additionalPrivileges": {},
+    "expandedPrivileges": [
+        "cms_page:read",
+        "custom_field:read",
+        "custom_field_set_relation:read",
+        "product_sorting:create",
+        "product_sorting:delete",
+        "product_sorting:read",
+        "product_sorting:update",
+        "sales_channel:read",
+        "seo_url_template:create",
+        "seo_url_template:read",
+        "seo_url_template:update",
+        "system_config:create",
+        "system_config:delete",
+        "system_config:read",
+        "system_config:update"
+    ]
+}

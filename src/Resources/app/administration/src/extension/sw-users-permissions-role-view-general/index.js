@@ -2,8 +2,9 @@ import template from './sw-users-permissions-role-view-general.html.twig';
 import ordersPreset from '../../../../../config/presets/orders.json';
 import productsPreset from '../../../../../config/presets/products.json';
 import categoriesPreset from '../../../../../config/presets/categories.json';
+import settingsPreset from '../../../../../config/presets/settings.json';
 
-const PRESETS = [ordersPreset, productsPreset, categoriesPreset];
+const PRESETS = [ordersPreset, productsPreset, categoriesPreset, settingsPreset];
 
 Shopware.Component.override('sw-users-permissions-role-view-general', {
     template,

@@ -5,3 +5,8 @@ import './extension/sw-product-detail';
 import './extension/sw-category-detail';
 import './extension/sw-category-view';
 import './extension/sw-admin-menu';
+import './extension/sw-settings-index';
+import './extension/sw-sales-channel-switch';
+import './extension/sw-system-config';
+import './extension/sw-settings-seo';
+import './extension/sw-seo-url-template-card';

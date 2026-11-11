@@ -29,6 +29,8 @@ use Shopware\Core\Framework\DataAbstractionLayer\Write\Validation\PreWriteValida
 use Shopware\Core\Framework\DataAbstractionLayer\Write\WriteContext;
 use Shopware\Core\Framework\Uuid\Uuid;
 use Shopware\Core\System\SalesChannel\SalesChannelDefinition;
+use Shopware\Core\System\SystemConfig\SystemConfigDefinition;
+use Shopware\Core\Content\Product\SalesChannel\Sorting\ProductSortingDefinition;
 use Shopware\Core\Framework\DataAbstractionLayer\Write\EntityWriteGatewayInterface;
 use Shopware\Core\Test\Stub\DataAbstractionLayer\StaticDefinitionInstanceRegistry;
 use Symfony\Component\Validator\Validation;
@@ -51,6 +53,10 @@ class WriteGuardSubscriberTest extends TestCase
     private const VISIBILITY_SHARED_DE = '0190555555555555555555555555aa01';
     private const VISIBILITY_SHARED_EN = '0190555555555555555555555555aa02';
     private const REVIEW_EN = '0190444444444444444444444444aa03';
+    private const CONFIG_DE = '0190333333333333333333333333aa01';
+    private const CONFIG_EN = '0190333333333333333333333333aa02';
+    private const CONFIG_ALL = '0190333333333333333333333333aa00';
+    private const CONFIG_DE_LISTING = '0190333333333333333333333333aa03';
 
     public function testOrdersOfTheUsersChannelCanChange(): void
     {
@@ -185,6 +191,35 @@ class WriteGuardSubscriberTest extends TestCase
         static::assertSame(['product_review'], $this->denied([$this->update($this->definition(ProductReviewDefinition::class), self::REVIEW_EN, ['status' => 1])]));
     }
 
+    public function testOnlySettingsOfTheUsersChannelsCanChange(): void
+    {
+        $config = $this->definition(SystemConfigDefinition::class);
+
+        $cart = ['configuration_key' => 'core.cart.maxQuantity'];
+
+        static::assertSame([], $this->denied([$this->update($config, self::CONFIG_DE, ['configuration_value' => '{}'])]));
+        static::assertSame(['system_config'], $this->denied([$this->update($config, self::CONFIG_EN, ['configuration_value' => '{}'])]));
+        static::assertSame(['system_config'], $this->denied([$this->delete($config, self::CONFIG_ALL)]));
+        static::assertSame([], $this->denied([$this->insert($config, Uuid::randomHex(), $cart + ['sales_channel_id' => Uuid::fromHexToBytes(Ids::DE)])]));
+        static::assertSame(['system_config'], $this->denied([$this->insert($config, Uuid::randomHex(), $cart + ['sales_channel_id' => null])]));
+        static::assertSame(['system_config'], $this->denied([$this->update($config, self::CONFIG_DE, ['sales_channel_id' => Uuid::fromHexToBytes(Ids::EN)])]));
+    }
+
+    public function testOnlySettingsOfThePresetPagesCanChange(): void
+    {
+        $config = $this->definition(SystemConfigDefinition::class);
+        $de = ['sales_channel_id' => Uuid::fromHexToBytes(Ids::DE)];
+
+        static::assertSame(['system_config'], $this->denied([$this->insert($config, Uuid::randomHex(), $de + ['configuration_key' => 'core.mailerSettings.password'])]));
+        static::assertSame(['system_config'], $this->denied([$this->insert($config, Uuid::randomHex(), $de + ['configuration_key' => 'SwagPayPal.settings.clientSecret'])]));
+        static::assertSame(['system_config'], $this->denied([$this->update($config, self::CONFIG_DE_LISTING, ['configuration_value' => '{}'])]));
+    }
+
+    public function testProductSortingsApplyToAllChannels(): void
+    {
+        static::assertSame(['product_sorting'], $this->denied([$this->update($this->definition(ProductSortingDefinition::class), Uuid::randomHex(), ['priority' => 1])]));
+    }
+
     public function testUnrestrictedUsersAreNotChecked(): void
     {
         static::assertSame([], $this->denied([$this->delete($this->definition(OrderDefinition::class), self::ORDER_EN)], Ids::context(Ids::FREE_USER)));
@@ -213,6 +248,13 @@ class WriteGuardSubscriberTest extends TestCase
                 self::VISIBILITY_SHARED_EN => ['product' => self::PRODUCT_SHARED, 'channel' => Ids::EN],
             ],
             reviews: [self::REVIEW_EN => Ids::EN],
+            settings: [self::CONFIG_DE => Ids::DE, self::CONFIG_EN => Ids::EN, self::CONFIG_ALL => '', self::CONFIG_DE_LISTING => Ids::DE],
+            configKeys: [
+                self::CONFIG_DE => 'core.cart.maxQuantity',
+                self::CONFIG_EN => 'core.cart.maxQuantity',
+                self::CONFIG_ALL => 'core.cart.maxQuantity',
+                self::CONFIG_DE_LISTING => 'core.listing.productsPerPage',
+            ],
         );
         $event = new PreWriteValidationEvent(WriteContext::createFromContext($context ?? Ids::context()), $commands);
         (new WriteGuardSubscriber(Ids::scope(), $lookup))->onPreWrite($event);
@@ -233,7 +275,7 @@ class WriteGuardSubscriberTest extends TestCase
     {
         static $registry = null;
         $registry ??= new StaticDefinitionInstanceRegistry(
-            [OrderDefinition::class, OrderLineItemDefinition::class, CustomerDefinition::class, CustomerAddressDefinition::class, SalesChannelDefinition::class, AclRoleSalesChannelDefinition::class, ProductDefinition::class, ProductPriceDefinition::class, ProductVisibilityDefinition::class, ProductReviewDefinition::class],
+            [OrderDefinition::class, OrderLineItemDefinition::class, CustomerDefinition::class, CustomerAddressDefinition::class, SalesChannelDefinition::class, AclRoleSalesChannelDefinition::class, ProductDefinition::class, ProductPriceDefinition::class, ProductVisibilityDefinition::class, ProductReviewDefinition::class, SystemConfigDefinition::class, ProductSortingDefinition::class],
             Validation::createValidator(),
             $this->createMock(EntityWriteGatewayInterface::class),
         );

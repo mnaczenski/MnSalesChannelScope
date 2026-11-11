@@ -64,9 +64,10 @@ class ScopeRules
     ];
 
     /**
-     * Settings that belong to one sales channel (column sales_channel_id) or,
+     * Records that belong to one sales channel (column sales_channel_id) or,
      * without one, to all of them: configuration values (payment credentials
-     * among them), SEO URLs and domains.
+     * among them), SEO URLs and templates, domains, product comparison
+     * exports, files, and Commercial's review summaries (per product and channel).
      */
     public const CHANNEL_SETTINGS = [
         'system_config',
@@ -75,6 +76,7 @@ class ScopeRules
         'sales_channel_domain',
         'product_export',
         'sales_channel_file',
+        'product_review_summary',
     ];
 
     /**
@@ -110,6 +112,7 @@ class ScopeRules
             $entity === 'category' => $this->categories?->readFilter($salesChannelIds),
             $entity === 'system_config' => $this->systemConfig($salesChannelIds),
             $entity === 'landing_page' => new EqualsAnyFilter('salesChannels.id', $salesChannelIds),
+            $entity === 'product_review_summary_translation' => new EqualsAnyFilter('productReviewSummary.salesChannelId', $salesChannelIds),
             \in_array($entity, self::CHANNEL_MAPPINGS, true) => new EqualsAnyFilter('salesChannelId', $salesChannelIds),
             $entity === 'sales_channel_analytics' => new EqualsAnyFilter('salesChannel.id', $salesChannelIds),
             \in_array($entity, self::LANDING_PAGE_CHILDREN, true) => new EqualsAnyFilter('landingPage.salesChannels.id', $salesChannelIds),

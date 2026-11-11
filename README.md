@@ -82,6 +82,7 @@ The principle: **with a scope, you only see what is connected to your sales chan
 | Products | `product_visibility`, many to many; variants inherit their parent's | sold in one of the user's channels | sold only in the user's channels, otherwise read-only; the user's own channel visibilities can always change | **2** |
 | Product details (prices, media, visibilities, configurator, cross-selling, downloads, search keywords) | through their product | as their product | as their product | **2** |
 | Product reviews | `product_review.salesChannelId` | its channel is the user's | its channel is the user's | **2** |
+| Review summaries (Commercial) | `product_review_summary.salesChannelId` | its channel is the user's | its channel is the user's | **2** |
 | Categories | none; channels point to entry categories (navigation, footer, service), `category.path` holds the ancestors | in a tree of one of the user's channels, plus the ancestors of their entry categories; other trees and trees outside every channel are hidden | it belongs to the user's channels only; shared trees and ancestors are read-only | **2** |
 | Sales channel settings (configuration values, SEO URLs, domains) | `salesChannelId`, or none for values that apply to all channels | of the user's channels, and those for all channels | of the user's channels only | hardening |
 | Shopping Experiences | none; used by categories, products, landing pages and default layout settings | used in one of the user's channels, created by the user's channels and still unused, or one of Shopware's locked layouts | used only within the user's channels (locked layouts never) | **2** |
@@ -247,7 +248,7 @@ Note that `document.deleter` also allows deleting document settings in *Settings
 
 **Shopping Experiences** (`cms.json`) adds the layout roles (viewer, editor, creator, deleter). Note that Shopware's layout editor role also grants `category:update` and `landing_page:update` (for assigning layouts); the write guard limits both to the user's channels.
 
-Two more presets: **Category management** (`categories.json`) adds the category roles with layouts, SEO and product assignments, and **Product management** (`products.json`) adds the product roles (viewer, editor, creator, deleter) with everything they pull in: media, Shopping Experience layouts and the Commercial extensions of the product page (bundles, review summaries).
+Two more presets: **Category management** (`categories.json`) adds the category roles with layouts, SEO and product assignments, and **Product management** (`products.json`) adds the product roles (viewer, editor, creator, deleter) with everything they pull in: media, Shopping Experience layouts and the Commercial extensions of the product page (bundles, review summaries), plus the review roles (viewer, editor, deleter) for *Catalogue → Reviews*.
 
 ## Permission preset: Sales channel settings
 

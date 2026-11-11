@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.0
+
+- The *Product management* preset also adds Shopware's review roles (viewer, editor, deleter): *Catalogue → Reviews* with the reviews of the role's sales channels; approving needs `product_review:update`, which the product roles don't grant.
+- Commercial's review summaries (`product_review_summary`, one per product and sales channel) and their translations: limited users see and change only those of their channels.
+
 ## 0.8.0
 
 - The *Sales channel settings* preset also gives the role its own sales channels (*Sales Channels* in the main menu, Shopware's sales channel viewer and editor roles). Creating and deleting sales channels stays with unrestricted users.

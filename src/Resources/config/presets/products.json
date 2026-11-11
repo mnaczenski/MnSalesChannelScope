@@ -5,14 +5,17 @@
         "de-DE": "Produktverwaltung"
     },
     "description": {
-        "en-GB": "Everything the product module needs: view, edit, create and delete products and variants, including media, Shopping Experience layouts, reviews and the Commercial extensions on the product page (bundles, review summaries).",
-        "de-DE": "Alles, was das Produktmodul braucht: Produkte und Varianten ansehen, bearbeiten, anlegen und löschen, inklusive Medien, Erlebniswelten-Layouts, Bewertungen und der Commercial-Erweiterungen der Produktseite (Bundles, Bewertungszusammenfassungen)."
+        "en-GB": "Everything the product module needs: view, edit, create and delete products and variants, including media, Shopping Experience layouts, reviews and the Commercial extensions on the product page (bundles, review summaries), and the Reviews module (view, approve and edit, delete reviews of the role's sales channels).",
+        "de-DE": "Alles, was das Produktmodul braucht: Produkte und Varianten ansehen, bearbeiten, anlegen und löschen, inklusive Medien, Erlebniswelten-Layouts, Bewertungen und der Commercial-Erweiterungen der Produktseite (Bundles, Bewertungszusammenfassungen), und das Bewertungsmodul (Bewertungen der eigenen Verkaufskanäle ansehen, freigeben und bearbeiten, löschen)."
     },
     "roles": [
         "product.viewer",
         "product.editor",
         "product.creator",
-        "product.deleter"
+        "product.deleter",
+        "review.viewer",
+        "review.editor",
+        "review.deleter"
     ],
     "additionalPrivileges": {},
     "expandedPrivileges": [
@@ -42,6 +45,7 @@
         "custom_field:read",
         "custom_field_set:read",
         "custom_field_set_relation:read",
+        "customer:read",
         "delivery_time:read",
         "document_base_config:read",
         "landing_page:read",
@@ -128,6 +132,7 @@
         "product_review:create",
         "product_review:delete",
         "product_review:read",
+        "product_review:update",
         "product_review_summary:create",
         "product_review_summary:delete",
         "product_review_summary:read",

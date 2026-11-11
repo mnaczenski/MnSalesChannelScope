@@ -458,6 +458,18 @@ class WriteGuardSubscriber implements EventSubscriberInterface
             return null;
         }
 
+        if ($entity === 'product_review_summary_translation') {
+            $current = $this->lookup->settingChannel('product_review_summary', ['id' => (string) ($primaryKey['product_review_summary_id'] ?? '')]);
+            if ($current === null && $insert) {
+                return null; // a summary inserted in this write: checked as product_review_summary
+            }
+            if ($current === null || !isset($allowed[$current])) {
+                return 'the review summary belongs to another sales channel';
+            }
+
+            return null;
+        }
+
         if ($entity === 'product_sorting') {
             return 'product sortings apply to all sales channels';
         }

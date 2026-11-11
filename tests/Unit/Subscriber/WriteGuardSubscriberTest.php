@@ -30,6 +30,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Write\WriteContext;
 use Shopware\Core\Framework\Uuid\Uuid;
 use Shopware\Core\System\SalesChannel\SalesChannelDefinition;
 use Shopware\Core\System\SystemConfig\SystemConfigDefinition;
+use Shopware\Commercial\ReviewSummary\Entity\ProductReviewSummary\ProductReviewSummaryDefinition;
 use Shopware\Core\System\SalesChannel\Aggregate\SalesChannelCountry\SalesChannelCountryDefinition;
 use Shopware\Core\System\SalesChannel\Aggregate\SalesChannelAnalytics\SalesChannelAnalyticsDefinition;
 use Shopware\Core\Content\LandingPage\LandingPageDefinition;
@@ -260,6 +261,15 @@ class WriteGuardSubscriberTest extends TestCase
         static::assertSame([], $this->denied([$this->insert($analytics, Uuid::randomHex(), ['active' => 1])]));
     }
 
+    public function testReviewSummariesOfOtherChannelsCanNotChange(): void
+    {
+        $summary = $this->definition(ProductReviewSummaryDefinition::class);
+
+        static::assertSame([], $this->denied([$this->update($summary, self::CONFIG_DE, ['visible' => 1])]));
+        static::assertSame(['product_review_summary'], $this->denied([$this->update($summary, self::CONFIG_EN, ['visible' => 1])]));
+        static::assertSame(['product_review_summary'], $this->denied([$this->insert($summary, Uuid::randomHex(), ['sales_channel_id' => Uuid::fromHexToBytes(Ids::EN)])]));
+    }
+
     public function testProductSortingsApplyToAllChannels(): void
     {
         static::assertSame(['product_sorting'], $this->denied([$this->update($this->definition(ProductSortingDefinition::class), Uuid::randomHex(), ['priority' => 1])]));
@@ -322,7 +332,7 @@ class WriteGuardSubscriberTest extends TestCase
     {
         static $registry = null;
         $registry ??= new StaticDefinitionInstanceRegistry(
-            [OrderDefinition::class, OrderLineItemDefinition::class, CustomerDefinition::class, CustomerAddressDefinition::class, SalesChannelDefinition::class, AclRoleSalesChannelDefinition::class, ProductDefinition::class, ProductPriceDefinition::class, ProductVisibilityDefinition::class, ProductReviewDefinition::class, SystemConfigDefinition::class, ProductSortingDefinition::class, LandingPageDefinition::class, LandingPageSalesChannelDefinition::class, SalesChannelCountryDefinition::class, SalesChannelAnalyticsDefinition::class],
+            [OrderDefinition::class, OrderLineItemDefinition::class, CustomerDefinition::class, CustomerAddressDefinition::class, SalesChannelDefinition::class, AclRoleSalesChannelDefinition::class, ProductDefinition::class, ProductPriceDefinition::class, ProductVisibilityDefinition::class, ProductReviewDefinition::class, SystemConfigDefinition::class, ProductSortingDefinition::class, LandingPageDefinition::class, LandingPageSalesChannelDefinition::class, SalesChannelCountryDefinition::class, SalesChannelAnalyticsDefinition::class, ProductReviewSummaryDefinition::class],
             Validation::createValidator(),
             $this->createMock(EntityWriteGatewayInterface::class),
         );

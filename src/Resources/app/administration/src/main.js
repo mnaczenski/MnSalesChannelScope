@@ -13,6 +13,7 @@ import './extension/sw-settings-seo';
 import './extension/sw-seo-url-template-card';
 import './extension/sw-cms-detail';
 import './extension/sw-promotion-v2-detail';
+import './extension/sw-search-bar';
 
 // Public API for other plugins: Shopware.Service('mnChannelScope'), see docs/extending.md.
 Shopware.Service().register('mnChannelScope', createPublicApi);

@@ -88,6 +88,7 @@ The unit tests can't cover the administration screens and the interplay with Sho
 - [ ] Clone of a layout or order of B (`POST /api/_action/clone/...`): refused; a copy of a shared layout belongs to A.
 - [ ] Assigning a theme to B: refused.
 - [ ] Global configuration values with credentials (`core.mailerSettings`, `core.store`): not readable.
+- [ ] With admin OpenSearch (`SHOPWARE_ADMIN_ES_ENABLED=1`): the global search finds the user's records and none of B; `POST /api/_admin/es-search` is refused (`MN_CHANNEL_SCOPE__ROUTE_DENIED`).
 
 **Unrestricted users**
 

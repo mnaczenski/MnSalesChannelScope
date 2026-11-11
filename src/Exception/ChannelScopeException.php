@@ -9,6 +9,17 @@ class ChannelScopeException extends HttpException
 {
     public const WRITE_DENIED = 'MN_CHANNEL_SCOPE__WRITE_DENIED';
     public const SETTINGS_DENIED = 'MN_CHANNEL_SCOPE__SETTINGS_DENIED';
+    public const ROUTE_DENIED = 'MN_CHANNEL_SCOPE__ROUTE_DENIED';
+
+    public static function routeDenied(string $route, string $reason): self
+    {
+        return new self(
+            Response::HTTP_FORBIDDEN,
+            self::ROUTE_DENIED,
+            'Your role may not use {{ route }}: {{ reason }}',
+            ['route' => $route, 'reason' => $reason],
+        );
+    }
 
     public static function settingsDenied(string $reason): self
     {

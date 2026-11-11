@@ -150,7 +150,8 @@ Some core endpoints check or change records without the events the read filter a
 | Dashboard turnover | plain SQL | `ScopedOrderAmountService` |
 | Admin search (`POST /api/_admin/search`), order state transitions, Store API proxy, admin order creation | none needed: they read through the repositories | – |
 | Import/Export | the presets don't grant it; export jobs run with the user's context, so the read filter applies (not tested end to end) | – |
-| Admin search with OpenSearch | results are filtered, the hit count comes from the index (not tested) | – |
+| Global search with OpenSearch (`POST /api/_admin/es-search`, `SHOPWARE_ADMIN_ES_ENABLED`) | asks the index for the best matches of all channels and filters them afterwards: a limited user's own matches can be crowded out, and the hit counts include other channels | `AdminSearchGuardSubscriber` refuses limited users (`MN_CHANNEL_SCOPE__ROUTE_DENIED`); their search bar uses the database search (`sw-search-bar`) |
+| List searches through OpenSearch (feature flag `ENABLE_OPENSEARCH_FOR_ADMIN_API`) | none expected: the read filter is added before Shopware chooses the index; filters on fields the index doesn't hold fall back to MySQL (not tested with the flag on) | – |
 
 ## Shopping Experiences
 
@@ -197,6 +198,7 @@ The administration extensions only help the user; every rule is enforced on the 
 | `sw-cms-detail` | shared layouts look like locked ones |
 | `sw-promotion-v2-detail` | new promotions get the user's channels |
 | `sw-admin-menu`, `sw-settings-index` | *Settings* only with the settings preset, and only the preset's pages; other settings pages redirect to the dashboard |
+| `sw-search-bar` | with admin OpenSearch: the database search instead of the search index (Shopware's shorter typing delay for OpenSearch stays) |
 | `sw-sales-channel-switch`, `sw-system-config`, `sw-seo-url-template-card`, `sw-settings-seo` | no *All Sales Channels* option; inherited values and default templates load first; settings that only exist for all channels are hidden |
 
 "Every field disabled" works through Shopware's own `acl` service: while a shared record is open, `acl.can()` answers *no* for the module's editor, creator and deleter roles (`registerReadOnlyGuard`), so Shopware's fields disable themselves as for a view-only user.

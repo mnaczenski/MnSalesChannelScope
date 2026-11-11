@@ -25,6 +25,7 @@ use Mn\SalesChannelScope\Rule\DbalChannelColumnLookup;
 use Mn\SalesChannelScope\Rule\SalesChannelColumnRule;
 use Mn\SalesChannelScope\Tags;
 use Mn\SalesChannelScope\Subscriber\WriteRuleSubscriber;
+use Mn\SalesChannelScope\Subscriber\AdminSearchGuardSubscriber;
 use Mn\SalesChannelScope\Subscriber\ChannelTotalsSubscriber;
 use Mn\SalesChannelScope\Subscriber\PromotionGuardSubscriber;
 use Mn\SalesChannelScope\Promotion\DbalPromotionSource;
@@ -125,6 +126,10 @@ return static function (ContainerConfigurator $configurator): void {
     $services->alias(PromotionSource::class, DbalPromotionSource::class);
     $services->set(PromotionGuardSubscriber::class)
         ->args([service(ChannelScope::class), service(PromotionSource::class)])
+        ->tag('kernel.event_subscriber');
+
+    $services->set(AdminSearchGuardSubscriber::class)
+        ->args([service(ChannelScope::class)])
         ->tag('kernel.event_subscriber');
 
     $services->set(ThemeGuardSubscriber::class)

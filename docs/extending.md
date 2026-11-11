@@ -23,7 +23,7 @@ Stable for extensions (changes are noted in the changelog):
 | `Scope\SettingsDomains` | your own per-channel settings |
 | `Scope\ChannelScope::salesChannelIds()` | the current user's channels in your own services |
 | `Scope\RoleChannelLoader` | where a user's channels come from (decorate it) |
-| `Exception\ChannelScopeException` | refusals (`MN_CHANNEL_SCOPE__WRITE_DENIED`, `MN_CHANNEL_SCOPE__SETTINGS_DENIED`) |
+| `Exception\ChannelScopeException` | refusals (`MN_CHANNEL_SCOPE__WRITE_DENIED`, `MN_CHANNEL_SCOPE__SETTINGS_DENIED`, `MN_CHANNEL_SCOPE__ROUTE_DENIED`) |
 | `Shopware.Service('mnChannelScope')` | the administration API |
 
 Everything else (the built-in guards, lookups, `ScopeRules`) is internal and may change.

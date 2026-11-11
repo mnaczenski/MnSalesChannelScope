@@ -2,6 +2,9 @@
 
 use Doctrine\DBAL\Connection;
 use Mn\SalesChannelScope\Category\CategoryTrees;
+use Mn\SalesChannelScope\Cms\CmsPages;
+use Mn\SalesChannelScope\Cms\CmsUsageSource;
+use Mn\SalesChannelScope\Cms\DbalCmsUsageSource;
 use Mn\SalesChannelScope\Category\CategoryTreeSource;
 use Mn\SalesChannelScope\Category\DbalCategoryTreeSource;
 use Mn\SalesChannelScope\Command\ApplyPresetCommand;
@@ -15,6 +18,8 @@ use Mn\SalesChannelScope\Scope\DbalRoleChannelLoader;
 use Mn\SalesChannelScope\Scope\RoleChannelLoader;
 use Mn\SalesChannelScope\Scope\ScopeRules;
 use Mn\SalesChannelScope\Subscriber\ChannelTotalsSubscriber;
+use Mn\SalesChannelScope\Subscriber\CloneGuardSubscriber;
+use Mn\SalesChannelScope\Subscriber\CmsGuardSubscriber;
 use Mn\SalesChannelScope\Subscriber\ImitateCustomerGuardSubscriber;
 use Mn\SalesChannelScope\Subscriber\SystemConfigGuardSubscriber;
 use Mn\SalesChannelScope\Subscriber\ReadFilterSubscriber;
@@ -24,6 +29,7 @@ use Mn\SalesChannelScope\Totals\DbalChannelTotals;
 use Mn\SalesChannelScope\Write\DbalScopeLookup;
 use Mn\SalesChannelScope\Write\ScopeLookup;
 use Shopware\Administration\Dashboard\OrderAmountService;
+use Shopware\Core\Framework\DataAbstractionLayer\DefinitionInstanceRegistry;
 use Shopware\Core\Checkout\Cart\Price\CashRounding;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -47,7 +53,18 @@ return static function (ContainerConfigurator $configurator): void {
         ->tag('kernel.reset', ['method' => 'reset']);
     $services->alias(CategoryTreeSource::class, DbalCategoryTreeSource::class);
     $services->set(CategoryTrees::class)->args([service(CategoryTreeSource::class)]);
-    $services->set(ScopeRules::class)->args([service(CategoryTrees::class)]);
+    $services->set(DbalCmsUsageSource::class)
+        ->args([service(Connection::class)])
+        ->tag('kernel.reset', ['method' => 'reset']);
+    $services->alias(CmsUsageSource::class, DbalCmsUsageSource::class);
+    $services->set(CmsPages::class)
+        ->args([service(CmsUsageSource::class), service(CategoryTrees::class)])
+        ->tag('kernel.reset', ['method' => 'reset']);
+    $services->set(ScopeRules::class)->args([service(CategoryTrees::class), service(CmsPages::class)]);
+
+    $services->set(CmsGuardSubscriber::class)
+        ->args([service(ChannelScope::class), service(CmsPages::class)])
+        ->tag('kernel.event_subscriber');
 
     $services->set(ReadFilterSubscriber::class)
         ->args([service(ChannelScope::class), service(ScopeRules::class)])
@@ -69,13 +86,17 @@ return static function (ContainerConfigurator $configurator): void {
         ->args([service(ChannelScope::class), service(ScopeLookup::class)])
         ->tag('kernel.event_subscriber');
 
+    $services->set(CloneGuardSubscriber::class)
+        ->args([service(ChannelScope::class), service(DefinitionInstanceRegistry::class), service(ScopeLookup::class), service(CmsPages::class)])
+        ->tag('kernel.event_subscriber');
+
     $services->set(SystemConfigGuardSubscriber::class)
         ->args([service(ChannelScope::class)])
         ->tag('kernel.event_subscriber');
 
     $services->set(ChannelScopeController::class)
         ->public()
-        ->args([service(ChannelScope::class), service(CategoryTrees::class)])
+        ->args([service(ChannelScope::class), service(CategoryTrees::class), service(CmsPages::class)])
         ->call('setContainer', [service('service_container')])
         ->tag('controller.service_arguments');
 

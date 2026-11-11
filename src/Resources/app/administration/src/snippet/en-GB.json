@@ -13,13 +13,15 @@
                 "orders": "Order management",
                 "products": "Product management",
                 "categories": "Category management",
-                "settings": "Sales channel settings"
+                "settings": "Sales channel settings",
+                "cms": "Shopping Experiences"
             },
             "help": {
                 "orders": "Adds everything the order module needs, including documents (create, upload, download, send, delete), refunds, discounts and payment states. Existing permissions stay. Note: deleting documents needs the Documents settings permission \"delete\", which also allows deleting document settings.",
                 "products": "Adds everything the product module needs, including media, Shopping Experience layouts, reviews and the Commercial extensions on the product page (bundles, review summaries). Existing permissions stay.",
                 "categories": "Adds everything the category module needs, including layouts, SEO settings and product assignments. Existing permissions stay.",
-                "settings": "Adds the settings pages with a sales channel switch (basic information, cart, login & registration, newsletter, sitemap, SEO URL templates), for the role's own sales channels only. Settings for all channels and the other settings pages stay with unrestricted users. Existing permissions stay."
+                "settings": "Adds the settings pages with a sales channel switch (basic information, cart, login & registration, newsletter, sitemap, SEO URL templates), for the role's own sales channels only. Settings for all channels and the other settings pages stay with unrestricted users. Existing permissions stay.",
+                "cms": "Adds everything the Shopping Experiences module needs (view, edit, create, delete layouts, with media). Limited users edit the layouts of their own sales channels; shared and locked layouts are read-only. Existing permissions stay."
             }
         },
         "product": {
@@ -31,6 +33,10 @@
             "readOnlyTitle": "Shared category: read-only",
             "readOnlyText": "This category is also used by sales channels outside your role, or it is above the start of your channels' category tree. Changes would affect those channels too, so only users responsible for all of them can change it. You can add and change subcategories that belong only to your channels.",
             "readOnlyTooltip": "Read-only: the category is also used by other sales channels"
+        },
+        "cms": {
+            "readOnlyTitle": "Shared layout: read-only",
+            "readOnlyText": "This layout is also used by sales channels outside your role (by their categories, products, landing pages or as a default layout). Changes would affect those channels too, so only users responsible for all of them can change it. You can duplicate it and use the copy in your channels."
         }
     }
 }

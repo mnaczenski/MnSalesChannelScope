@@ -30,6 +30,8 @@ use Shopware\Core\Framework\DataAbstractionLayer\Write\WriteContext;
 use Shopware\Core\Framework\Uuid\Uuid;
 use Shopware\Core\System\SalesChannel\SalesChannelDefinition;
 use Shopware\Core\System\SystemConfig\SystemConfigDefinition;
+use Shopware\Core\Content\LandingPage\LandingPageDefinition;
+use Shopware\Core\Content\LandingPage\Aggregate\LandingPageSalesChannel\LandingPageSalesChannelDefinition;
 use Shopware\Core\Content\Product\SalesChannel\Sorting\ProductSortingDefinition;
 use Shopware\Core\Framework\DataAbstractionLayer\Write\EntityWriteGatewayInterface;
 use Shopware\Core\Test\Stub\DataAbstractionLayer\StaticDefinitionInstanceRegistry;
@@ -57,6 +59,8 @@ class WriteGuardSubscriberTest extends TestCase
     private const CONFIG_EN = '0190333333333333333333333333aa02';
     private const CONFIG_ALL = '0190333333333333333333333333aa00';
     private const CONFIG_DE_LISTING = '0190333333333333333333333333aa03';
+    private const LANDING_DE = '0190222222222222222222222222aa01';
+    private const LANDING_SHARED = '0190222222222222222222222222aa02';
 
     public function testOrdersOfTheUsersChannelCanChange(): void
     {
@@ -215,6 +219,23 @@ class WriteGuardSubscriberTest extends TestCase
         static::assertSame(['system_config'], $this->denied([$this->update($config, self::CONFIG_DE_LISTING, ['configuration_value' => '{}'])]));
     }
 
+    public function testOnlyLandingPagesOfTheUsersChannelsCanChange(): void
+    {
+        $landing = $this->definition(LandingPageDefinition::class);
+        $mapping = $this->definition(LandingPageSalesChannelDefinition::class);
+        $live = Uuid::fromHexToBytes(Defaults::LIVE_VERSION);
+        $map = fn (string $page, string $channel) => new InsertCommand($mapping, [], ['landing_page_id' => Uuid::fromHexToBytes($page), 'landing_page_version_id' => $live, 'sales_channel_id' => Uuid::fromHexToBytes($channel)], $this->existence('landing_page_sales_channel', false), '');
+
+        static::assertSame([], $this->denied([$this->update($landing, self::LANDING_DE, ['active' => 1])]));
+        static::assertSame(['landing_page'], $this->denied([$this->update($landing, self::LANDING_SHARED, ['active' => 1])]));
+        static::assertSame(['landing_page'], $this->denied([$this->delete($landing, self::LANDING_SHARED)]));
+        static::assertSame(['landing_page_sales_channel'], $this->denied([$map(self::LANDING_DE, Ids::EN)]));
+
+        $new = Uuid::randomHex();
+        static::assertSame([], $this->denied([$this->insert($landing, $new, ['active' => 1]), $map($new, Ids::DE)]));
+        static::assertSame(['landing_page_sales_channel'], $this->denied([$this->insert($landing, $new, ['active' => 1]), $map($new, Ids::EN)]));
+    }
+
     public function testProductSortingsApplyToAllChannels(): void
     {
         static::assertSame(['product_sorting'], $this->denied([$this->update($this->definition(ProductSortingDefinition::class), Uuid::randomHex(), ['priority' => 1])]));
@@ -249,6 +270,7 @@ class WriteGuardSubscriberTest extends TestCase
             ],
             reviews: [self::REVIEW_EN => Ids::EN],
             settings: [self::CONFIG_DE => Ids::DE, self::CONFIG_EN => Ids::EN, self::CONFIG_ALL => '', self::CONFIG_DE_LISTING => Ids::DE],
+            landingPages: [self::LANDING_DE => [Ids::DE], self::LANDING_SHARED => [Ids::DE, Ids::EN]],
             configKeys: [
                 self::CONFIG_DE => 'core.cart.maxQuantity',
                 self::CONFIG_EN => 'core.cart.maxQuantity',
@@ -275,7 +297,7 @@ class WriteGuardSubscriberTest extends TestCase
     {
         static $registry = null;
         $registry ??= new StaticDefinitionInstanceRegistry(
-            [OrderDefinition::class, OrderLineItemDefinition::class, CustomerDefinition::class, CustomerAddressDefinition::class, SalesChannelDefinition::class, AclRoleSalesChannelDefinition::class, ProductDefinition::class, ProductPriceDefinition::class, ProductVisibilityDefinition::class, ProductReviewDefinition::class, SystemConfigDefinition::class, ProductSortingDefinition::class],
+            [OrderDefinition::class, OrderLineItemDefinition::class, CustomerDefinition::class, CustomerAddressDefinition::class, SalesChannelDefinition::class, AclRoleSalesChannelDefinition::class, ProductDefinition::class, ProductPriceDefinition::class, ProductVisibilityDefinition::class, ProductReviewDefinition::class, SystemConfigDefinition::class, ProductSortingDefinition::class, LandingPageDefinition::class, LandingPageSalesChannelDefinition::class],
             Validation::createValidator(),
             $this->createMock(EntityWriteGatewayInterface::class),
         );

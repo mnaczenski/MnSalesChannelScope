@@ -1,0 +1,36 @@
+{% block sw_cms_detail_loader %}
+<sw-overlay v-if="mnLayoutReadOnly" />
+{% parent %}
+{% endblock %}
+
+{% block sw_cms_detail_page_notification %}
+{% parent %}
+<div
+    v-if="mnLayoutReadOnly"
+    class="sw-cms-detail__page-notification"
+>
+    <mt-banner
+        class="sw-cms-detail__page-notification-alert"
+        variant="info"
+        :title="$t('mn-sales-channel-scope.cms.readOnlyTitle')"
+    >
+        {{ $t('mn-sales-channel-scope.cms.readOnlyText') }}
+    </mt-banner>
+</div>
+{% endblock %}
+
+{% block sw_cms_detail_toolbar_notification_infos %}
+{% parent %}
+<div
+    v-if="mnLayoutReadOnly"
+    class="sw-cms-detail__page-notification is--info"
+>
+    <mt-banner
+        class="sw-cms-detail__page-notification-alert"
+        variant="info"
+        :title="$t('mn-sales-channel-scope.cms.readOnlyTitle')"
+    >
+        {{ $t('mn-sales-channel-scope.cms.readOnlyText') }}
+    </mt-banner>
+</div>
+{% endblock %}

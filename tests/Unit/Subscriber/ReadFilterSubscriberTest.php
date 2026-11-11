@@ -7,6 +7,10 @@ use Mn\SalesChannelScope\Subscriber\ReadFilterSubscriber;
 use Mn\SalesChannelScope\Tests\Ids;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Mn\SalesChannelScope\Tests\StaticCategoryTreeSource;
+use Mn\SalesChannelScope\Tests\StaticCmsUsageSource;
+use Mn\SalesChannelScope\Category\CategoryTrees;
+use Mn\SalesChannelScope\Cms\CmsPages;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\PrefixFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\NotFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\AndFilter;
@@ -93,6 +97,17 @@ class ReadFilterSubscriberTest extends TestCase
         static::assertEquals(new PrefixFilter('configurationKey', 'core.'), $core);
         static::assertInstanceOf(NotFilter::class, $hidden);
         static::assertContainsEquals(new PrefixFilter('configurationKey', 'core.mailerSettings.'), $hidden->getQueries());
+    }
+
+    public function testLayoutPartsGoThroughTheirLayout(): void
+    {
+        $rules = new ScopeRules(null, new CmsPages(new StaticCmsUsageSource(), new CategoryTrees(new StaticCategoryTreeSource())));
+        $filter = $rules->readFilter('cms_slot', [Ids::DE]);
+
+        static::assertInstanceOf(EqualsAnyFilter::class, $filter);
+        static::assertSame('block.section.pageId', $filter->getField());
+        static::assertContains(StaticCmsUsageSource::OWNED_LAYOUT, $filter->getValue());
+        static::assertNotContains(StaticCmsUsageSource::EN_LAYOUT, $filter->getValue());
     }
 
     public function testToManyAssociationsAreFilteredToo(): void

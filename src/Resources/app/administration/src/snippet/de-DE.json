@@ -13,13 +13,15 @@
                 "orders": "Bestellverwaltung",
                 "products": "Produktverwaltung",
                 "categories": "Kategorieverwaltung",
-                "settings": "Verkaufskanal-Einstellungen"
+                "settings": "Verkaufskanal-Einstellungen",
+                "cms": "Erlebniswelten"
             },
             "help": {
                 "orders": "Fügt alles hinzu, was das Bestellmodul braucht, auch Dokumente (erstellen, hochladen, herunterladen, versenden, löschen), Erstattungen, Rabatte und Zahlungsstatus. Bestehende Berechtigungen bleiben. Hinweis: Dokumente löschen erfordert die Berechtigung \"Löschen\" der Dokument-Einstellungen, die auch das Löschen von Dokumentvorlagen erlaubt.",
                 "products": "Fügt alles hinzu, was das Produktmodul braucht, auch Medien, Erlebniswelten-Layouts, Bewertungen und die Commercial-Erweiterungen der Produktseite (Bundles, Bewertungszusammenfassungen). Bestehende Berechtigungen bleiben.",
                 "categories": "Fügt alles hinzu, was das Kategoriemodul braucht, auch Layouts, SEO-Einstellungen und Produktzuordnungen. Bestehende Berechtigungen bleiben.",
-                "settings": "Fügt die Einstellungsseiten mit Verkaufskanal-Auswahl hinzu (Grundinformationen, Warenkorb, Login & Registrierung, Newsletter, Sitemap, SEO-URL-Templates), nur für die eigenen Verkaufskanäle der Rolle. Einstellungen für alle Kanäle und die übrigen Einstellungsseiten bleiben unbeschränkten Benutzern vorbehalten. Bestehende Berechtigungen bleiben."
+                "settings": "Fügt die Einstellungsseiten mit Verkaufskanal-Auswahl hinzu (Grundinformationen, Warenkorb, Login & Registrierung, Newsletter, Sitemap, SEO-URL-Templates), nur für die eigenen Verkaufskanäle der Rolle. Einstellungen für alle Kanäle und die übrigen Einstellungsseiten bleiben unbeschränkten Benutzern vorbehalten. Bestehende Berechtigungen bleiben.",
+                "cms": "Fügt alles hinzu, was das Erlebniswelten-Modul braucht (Layouts ansehen, bearbeiten, anlegen, löschen, mit Medien). Beschränkte Benutzer bearbeiten die Layouts ihrer eigenen Verkaufskanäle; geteilte und gesperrte Layouts sind schreibgeschützt. Bestehende Berechtigungen bleiben."
             }
         },
         "product": {
@@ -31,6 +33,10 @@
             "readOnlyTitle": "Geteilte Kategorie: nur lesen",
             "readOnlyText": "Diese Kategorie wird auch von Verkaufskanälen außerhalb Ihrer Rolle genutzt oder liegt oberhalb des Kategoriebaums Ihrer Kanäle. Änderungen würden auch diese Kanäle betreffen, deshalb können sie nur Benutzer ändern, die für alle zuständig sind. Unterkategorien, die nur zu Ihren Kanälen gehören, können Sie anlegen und ändern.",
             "readOnlyTooltip": "Nur lesen: Die Kategorie wird auch von anderen Verkaufskanälen genutzt"
+        },
+        "cms": {
+            "readOnlyTitle": "Geteiltes Layout: nur lesen",
+            "readOnlyText": "Dieses Layout wird auch von Verkaufskanälen außerhalb Ihrer Rolle verwendet (von deren Kategorien, Produkten, Landingpages oder als Standardlayout). Änderungen würden auch diese Kanäle betreffen, deshalb können es nur Benutzer ändern, die für alle zuständig sind. Sie können es duplizieren und die Kopie in Ihren Kanälen verwenden."
         }
     }
 }

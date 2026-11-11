@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0
+
+- Shopping Experiences: a layout belongs to the sales channels of the categories, products and landing pages that use it, of the default layout settings that name it and, while nothing uses it, of the limited user who created it (new table `mn_cms_page_sales_channel`). Limited users see the layouts of their channels and Shopware's locked layouts; they edit layouts that belong to their channels only. Shared layouts look like locked ones in the editor (overlay, hint, no saving); copies of them belong to the user's channels. Sections, blocks, slots and translations follow their layout. Categories, products and landing pages can only get layouts the user sees.
+- Landing pages: visible when shown in one of the user's channels, editable when shown only there; new landing pages only for the user's channels.
+- New permission preset *Shopping Experiences*.
+- Clone (`POST /api/_action/clone/{entity}/{id}`): Shopware reads the source without the read filter's search events and writes the copy in the system scope, so limited users could clone records of other channels. Now the source must be visible to them, products only when sold in their channels only (the copy keeps the visibilities); copies of layouts belong to their channels (`CloneGuardSubscriber`).
+- `GET /api/_action/mn-channel-scope/cms-page/{id}` returns `{ restricted, editable, salesChannelIds }` for the editor.
+
 ## 0.6.0
 
 Hardening: paths around the read filter.

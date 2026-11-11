@@ -3,6 +3,7 @@
 namespace Mn\SalesChannelScope\Scope;
 
 use Mn\SalesChannelScope\Category\CategoryTrees;
+use Mn\SalesChannelScope\Cms\CmsPages;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\AndFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsAnyFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
@@ -20,12 +21,26 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\PrefixFilter;
  * through their parent), their details, product reviews, categories (the
  * trees of the channels, see CategoryTrees), main categories. Hardening:
  * sales channel settings (configuration, SEO URLs, domains) of other channels.
+ * Shopping Experience layouts and their parts (see CmsPages).
  */
 class ScopeRules
 {
-    public function __construct(private readonly ?CategoryTrees $categories = null)
-    {
+    public function __construct(
+        private readonly ?CategoryTrees $categories = null,
+        private readonly ?CmsPages $cms = null,
+    ) {
     }
+
+    /** Entities that belong to a landing page (column landing_page_id / association "landingPage"). */
+    public const LANDING_PAGE_CHILDREN = ['landing_page_translation'];
+
+    /** Shopping Experience layout parts: entity => path to the layout id. */
+    public const CMS_PARTS = [
+        'cms_page' => 'id',
+        'cms_section' => 'pageId',
+        'cms_block' => 'section.pageId',
+        'cms_slot' => 'block.section.pageId',
+    ];
 
     /** Entities that belong to an order (column order_id / association "order"). */
     public const ORDER_CHILDREN = [
@@ -77,6 +92,12 @@ class ScopeRules
             $entity === 'main_category' => new EqualsAnyFilter('salesChannelId', $salesChannelIds),
             $entity === 'category' => $this->categories?->readFilter($salesChannelIds),
             $entity === 'system_config' => $this->systemConfig($salesChannelIds),
+            $entity === 'landing_page' => new EqualsAnyFilter('salesChannels.id', $salesChannelIds),
+            \in_array($entity, self::LANDING_PAGE_CHILDREN, true) => new EqualsAnyFilter('landingPage.salesChannels.id', $salesChannelIds),
+            isset(self::CMS_PARTS[$entity]) && $this->cms !== null => new EqualsAnyFilter(
+                self::CMS_PARTS[$entity],
+                $this->cms->visibleIds($salesChannelIds) ?: ['00000000000000000000000000000000'],
+            ),
             \in_array($entity, self::CHANNEL_SETTINGS, true) => new OrFilter([
                 new EqualsAnyFilter('salesChannelId', $salesChannelIds),
                 new EqualsFilter('salesChannelId', null),

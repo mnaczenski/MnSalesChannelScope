@@ -82,7 +82,8 @@ The principle: **with a scope, you only see what is connected to your sales chan
 | Product reviews | `product_review.salesChannelId` | its channel is the user's | its channel is the user's | **2** |
 | Categories | none; channels point to entry categories (navigation, footer, service), `category.path` holds the ancestors | in a tree of one of the user's channels, plus the ancestors of their entry categories; other trees and trees outside every channel are hidden | it belongs to the user's channels only; shared trees and ancestors are read-only | **2** |
 | Sales channel settings (configuration values, SEO URLs, domains) | `salesChannelId`, or none for values that apply to all channels | of the user's channels, and those for all channels | of the user's channels only | hardening |
-| Shopping Experiences | none; used by categories, products, landing pages and per-channel defaults | used by something the user sees, or created by the user's channels and still unused | used only within the user's channels | 2 (next) |
+| Shopping Experiences | none; used by categories, products, landing pages and default layout settings | used in one of the user's channels, created by the user's channels and still unused, or one of Shopware's locked layouts | used only within the user's channels (locked layouts never) | **2** |
+| Landing pages | `landing_page_sales_channel`, many to many | shown in one of the user's channels | shown only in the user's channels | **2** |
 
 Customers are the subtle case. A customer registered in channel B who also ordered in channel A is visible to the team of channel A, because they handle that customer's orders in A. But only the team of channel B may change the customer, because the account belongs to channel B.
 
@@ -179,10 +180,23 @@ A few core endpoints check records without the search events the read filter hoo
 | *Log in as customer* (`POST /api/_proxy/generate-imitate-customer-token`) | validates the customer and channel with a raw existence check: a limited user got a storefront login for another channel's customer | `ImitateCustomerGuardSubscriber` adds constraints to the request's validation (`framework.validation.impersonation.generate-token`): the channel must be the user's, the customer registered in or bound to one of the user's channels |
 | Dashboard turnover | raw SQL | `ScopedOrderAmountService`, see below |
 | Admin search (`POST /api/_admin/search`) | none: it searches through the repositories | – |
+| Clone (`POST /api/_action/clone/{entity}/{id}`) | reads the source without search events and writes the copy in the system scope: hidden records could be copied, the write guard doesn't see the copy | `CloneGuardSubscriber`: the source must be visible to the user, a product sold in their channels only; copies of layouts belong to their channels |
 | Order state transitions | none: the state machine reads the order through the repository, other channels' orders are "not found" | – |
 | Store API proxy and admin order creation (`/api/_proxy/...`, `/api/_proxy-order/...`) | none: the channel is read through the repository | – |
 | Import/Export | the presets don't grant it; an export job runs with the user's context, so the read filter applies (not tested end to end) | – |
 | Admin search with OpenSearch (`SHOPWARE_ADMIN_ES_ENABLED`) | results are loaded through the repository and filtered, but the hit count comes from the search index (not tested) | count visible hits |
+
+### Shopping Experiences
+
+A layout has no sales channel of its own. `CmsPages` derives them from what uses it (`DbalCmsUsageSource`, one set of queries per request):
+
+- categories: the channels whose trees hold the category (see categories);
+- products and variants: their visibilities (a variant without its own uses its parent's);
+- landing pages: their sales channels;
+- default layout settings (`core.cms.default_*`): all channels, or the one they are set for;
+- owners: a layout created by a limited user belongs to that user's channels (`mn_cms_page_sales_channel`, recorded when it is written). This keeps a new, still unused layout visible to its team, and copies of shared layouts too.
+
+Visible: Shopware's locked layouts and layouts with one of the user's channels; layouts nobody uses that an unrestricted user created are hidden. Editable: not locked and only the user's channels. The read filter limits `cms_page` and, through their layout, `cms_section`, `cms_block` and `cms_slot`. `CmsGuardSubscriber` checks every write to a layout, its parts and translations (also parts inserted in the same write, and parts moved to another layout), and refuses assigning layouts the user can't see to categories, products and landing pages. In the editor, a shared layout behaves like a locked one.
 
 ### Totals
 
@@ -228,6 +242,8 @@ Apply it on the role page (**Add preset: Order management**, then save) or with 
 
 Note that `document.deleter` also allows deleting document settings in *Settings → Documents*. The order module only offers deleting documents with it.
 
+**Shopping Experiences** (`cms.json`) adds the layout roles (viewer, editor, creator, deleter). Note that Shopware's layout editor role also grants `category:update` and `landing_page:update` (for assigning layouts); the write guard limits both to the user's channels.
+
 Two more presets: **Category management** (`categories.json`) adds the category roles with layouts, SEO and product assignments, and **Product management** (`products.json`) adds the product roles (viewer, editor, creator, deleter) with everything they pull in: media, Shopping Experience layouts and the Commercial extensions of the product page (bundles, review summaries).
 
 ## Permission preset: Sales channel settings
@@ -265,7 +281,9 @@ and copy `privileges` into `expandedPrivileges`. The script reads every administ
 
 | Gap | Effect | Planned fix |
 |---|---|---|
-| Shopping Experiences, promotions, landing pages, newsletter recipients | not limited yet | iteration 2 |
+| Promotions, newsletter recipients | not limited yet | iteration 2 |
+| Shopping Experience extensions of Commercial (scroll navigation, quick view, block rules) | not checked; they belong to layout sections and blocks | follow their layout |
+| Layout list actions (delete, set as default) on shared layouts | offered; the write guard and the settings guard refuse them | hide them in the list |
 | Settings pages beyond the preset (listing, documents, number ranges, plugin configuration) | only unrestricted users | one by one where a page is per channel |
 | Category tree actions (add, delete, drag and drop in the tree) | not marked read-only; the write guard refuses the change | mark them in the tree |
 | Category child counts | the tree shows an expand arrow for categories whose children are all hidden | count visible children |

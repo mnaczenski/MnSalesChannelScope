@@ -62,6 +62,9 @@ class WriteGuardSubscriber implements EventSubscriberInterface
         'product_translation',
     ];
 
+    /** Landing page tables whose records belong to one landing page (column landing_page_id). */
+    public const LANDING_PAGE_WRITE_CHILDREN = ['landing_page_translation', 'landing_page_sales_channel', 'landing_page_tag'];
+
     /** Category tables whose records belong to one category (column category_id). */
     public const CATEGORY_WRITE_CHILDREN = ['category_translation', 'category_tag'];
 
@@ -94,14 +97,18 @@ class WriteGuardSubscriber implements EventSubscriberInterface
         [$newOrders, $newCustomers, $newProducts] = $this->inserted($commands);
 
         $newCategories = [];
+        $newLandingPages = [];
         foreach ($commands as $command) {
+            if ($command instanceof InsertCommand && $command->getEntityName() === 'landing_page' && \is_string($id = $command->getPrimaryKey()['id'] ?? null)) {
+                $newLandingPages[Uuid::fromBytesToHex($id)] = true;
+            }
             if ($command instanceof InsertCommand && $command->getEntityName() === 'category' && \is_string($id = $command->getPrimaryKey()['id'] ?? null)) {
                 $newCategories[Uuid::fromBytesToHex($id)] = true;
             }
         }
 
         foreach ($commands as $command) {
-            $reason = $this->deny($command, $allowed, $newOrders, $newCustomers)
+            $reason = $this->deny($command, $allowed, $newOrders, $newCustomers, $newLandingPages)
                 ?? $this->denyProduct($command, $allowed, $newProducts)
                 ?? $this->denyCategory($command, $ids, $newCategories);
             if ($reason !== null) {
@@ -213,8 +220,9 @@ class WriteGuardSubscriber implements EventSubscriberInterface
      * @param array<string, int> $allowed
      * @param array<string, ?string> $newOrders
      * @param array<string, array{salesChannelId: string, boundSalesChannelId: ?string}> $newCustomers
+     * @param array<string, true> $newLandingPages
      */
-    private function deny(WriteCommand $command, array $allowed, array $newOrders, array $newCustomers): ?string
+    private function deny(WriteCommand $command, array $allowed, array $newOrders, array $newCustomers, array $newLandingPages = []): ?string
     {
         $entity = $command->getEntityName();
         $primaryKey = $command->getPrimaryKey();
@@ -390,6 +398,27 @@ class WriteGuardSubscriber implements EventSubscriberInterface
             }
             if (\array_key_exists('sales_channel_id', $payload) && !isset($allowed[$this->hex($payload['sales_channel_id']) ?? ''])) {
                 return 'reviews can only belong to your sales channels';
+            }
+
+            return null;
+        }
+
+        if ($entity === 'landing_page' || \in_array($entity, self::LANDING_PAGE_WRITE_CHILDREN, true)) {
+            $column = $entity === 'landing_page' ? 'id' : 'landing_page_id';
+            $id = $primaryKey[$column] ?? $payload[$column] ?? null;
+            if ($entity === 'landing_page' && $insert) {
+                return null;
+            }
+            $channels = \is_string($id) ? $this->lookup->landingPageChannels($id, $primaryKey['version_id'] ?? $primaryKey['landing_page_version_id'] ?? $payload['landing_page_version_id'] ?? $this->liveVersion()) : null;
+            if ($channels === null && $entity !== 'landing_page_sales_channel') {
+                // a landing page inserted in this write: its channels are checked below
+                return \is_string($id) && isset($newLandingPages[Uuid::fromBytesToHex($id)]) ? null : 'the landing page belongs to other sales channels';
+            }
+            if ($channels !== null && ($channels === [] || array_diff($channels, array_keys($allowed)) !== [])) {
+                return 'the landing page is also shown in other sales channels';
+            }
+            if ($entity === 'landing_page_sales_channel' && !isset($allowed[$this->hex($primaryKey['sales_channel_id'] ?? null) ?? ''])) {
+                return 'landing pages can only be shown in your sales channels';
             }
 
             return null;

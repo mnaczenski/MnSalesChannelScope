@@ -3,6 +3,7 @@
 namespace Mn\SalesChannelScope\Controller;
 
 use Mn\SalesChannelScope\Category\CategoryTrees;
+use Mn\SalesChannelScope\Cms\CmsPages;
 use Mn\SalesChannelScope\Scope\ChannelScope;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\Routing\ApiRouteScope;
@@ -22,7 +23,27 @@ class ChannelScopeController extends AbstractController
     public function __construct(
         private readonly ChannelScope $scope,
         private readonly CategoryTrees $categories,
+        private readonly CmsPages $cms,
     ) {
+    }
+
+    /**
+     * Whether the current user may edit a Shopping Experience layout, and the
+     * sales channels it belongs to (only for the read-only hint).
+     */
+    #[Route(path: '/api/_action/mn-channel-scope/cms-page/{pageId}', name: 'api.action.mn-channel-scope.cms-page', methods: ['GET'])]
+    public function cmsPage(string $pageId, Context $context): JsonResponse
+    {
+        $ids = $this->scope->salesChannelIds($context);
+        if ($ids === null) {
+            return new JsonResponse(['restricted' => false, 'editable' => true, 'salesChannelIds' => []]);
+        }
+
+        return new JsonResponse([
+            'restricted' => true,
+            'editable' => $this->cms->isEditable($pageId, $ids),
+            'salesChannelIds' => $this->cms->isVisible($pageId, $ids) ? ($this->cms->channels($pageId) ?? []) : [],
+        ]);
     }
 
     #[Route(path: '/api/_action/mn-channel-scope/me', name: 'api.action.mn-channel-scope.me', methods: ['GET'])]

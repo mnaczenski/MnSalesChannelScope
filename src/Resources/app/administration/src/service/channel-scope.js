@@ -100,3 +100,22 @@ export function registerReadOnlyGuard(isReadOnly, deniedPrivileges) {
 
     return () => guards.delete(guard);
 }
+
+/**
+ * Whether the current user may edit a Shopping Experience layout:
+ * { restricted, editable, salesChannelIds }. Only drives the UI.
+ */
+export function loadCmsPageScope(pageId) {
+    const httpClient = Shopware.Application.getContainer('init').httpClient;
+    const loginService = Shopware.Service('loginService');
+
+    return httpClient
+        .get(`_action/mn-channel-scope/cms-page/${pageId}`, {
+            headers: {
+                Accept: 'application/json',
+                Authorization: `Bearer ${loginService.getToken()}`,
+            },
+        })
+        .then((response) => response.data)
+        .catch(() => ({ restricted: false, editable: true, salesChannelIds: [] }));
+}

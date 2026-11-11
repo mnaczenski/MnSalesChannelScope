@@ -138,6 +138,19 @@ class DbalScopeLookup implements ScopeLookup
         return \is_string($value) ? $value : null;
     }
 
+    public function landingPageChannels(string $landingPageId, string $versionId): ?array
+    {
+        $exists = $this->connection->fetchOne('SELECT 1 FROM landing_page WHERE id = :id AND version_id = :v', ['id' => $landingPageId, 'v' => $versionId]);
+        if ($exists === false) {
+            return null;
+        }
+
+        return array_values(array_map('strval', $this->connection->fetchFirstColumn(
+            'SELECT LOWER(HEX(sales_channel_id)) FROM landing_page_sales_channel WHERE landing_page_id = :id AND landing_page_version_id = :v',
+            ['id' => $landingPageId, 'v' => $versionId],
+        )));
+    }
+
     public function configKey(array $primaryKey): ?string
     {
         [$where, $params] = $this->where('config', $primaryKey);

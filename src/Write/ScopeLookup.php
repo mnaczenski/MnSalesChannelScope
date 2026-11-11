@@ -79,4 +79,11 @@ interface ScopeLookup
      * @param array<string, string> $primaryKey
      */
     public function configKey(array $primaryKey): ?string;
+
+    /**
+     * Sales channels (hex) of a stored landing page, null when it doesn't exist.
+     *
+     * @return list<string>|null
+     */
+    public function landingPageChannels(string $landingPageId, string $versionId): ?array;
 }

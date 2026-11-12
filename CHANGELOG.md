@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.1
+
+- Fixed: for limited users, product pages in the administration didn't load ("Unknown column 'product_translation.id'"). The read filter of product translations (0.12.0) goes through the product's visibilities; Shopware then groups the rows by an `id` column, which translations don't have. Records without an `id` are now grouped by their primary key.
+- Leak check: a plain search of every limited record type and of its translations must work (a server error fails the check), and translations are also searched through their record. Translations aren't in the entity schema the sweep reads.
+
 ## 0.12.0
 
 Security review: every Admin API route and every entity checked for ways around the scope.

@@ -24,6 +24,7 @@ use Shopware\Core\Checkout\Customer\CustomerDefinition;
 use Shopware\Core\Checkout\Order\Aggregate\OrderCustomer\OrderCustomerDefinition;
 use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemDefinition;
 use Shopware\Core\Checkout\Order\OrderDefinition;
+use Shopware\Core\Content\Product\Aggregate\ProductTranslation\ProductTranslationDefinition;
 use Shopware\Core\Content\Product\ProductDefinition;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityDefinition;
@@ -56,6 +57,7 @@ class ReadFilterSubscriberTest extends TestCase
                 OrderCustomerDefinition::class,
                 SalesChannelDefinition::class,
                 ProductDefinition::class,
+                ProductTranslationDefinition::class,
             ],
             Validation::createValidator(),
             $this->createMock(EntityWriteGatewayInterface::class),
@@ -188,6 +190,20 @@ class ReadFilterSubscriberTest extends TestCase
         static::assertInstanceOf(OrFilter::class, $filter);
         static::assertSame(['product.visibilities.salesChannelId', 'product.parent.visibilities.salesChannelId'], $this->fields($filter));
         static::assertEquals(new EqualsAnyFilter('salesChannelId', [Ids::DE]), (new ScopeRules())->readFilter('product_review', [Ids::DE]));
+    }
+
+    public function testRecordsWithoutAnIdAreGroupedByTheirPrimaryKey(): void
+    {
+        // Shopware groups by `id` when a filter joins a to-many association; translations have none
+        $criteria = $this->search(ProductTranslationDefinition::class);
+        static::assertSame(['productId', 'languageId', 'productVersionId'], array_map(static fn ($group) => $group->getField(), $criteria->getGroupFields()));
+
+        $product = new Criteria();
+        $product->addAssociation('translations');
+        $this->search(ProductDefinition::class, $product);
+        static::assertCount(3, $product->getAssociation('translations')->getGroupFields(), 'also when loaded with the product');
+
+        static::assertSame([], $this->search(OrderDefinition::class)->getGroupFields(), 'records with an id stay as they are');
     }
 
     public function testEveryGuardedProductDetailIsAlsoFiltered(): void

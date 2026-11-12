@@ -19,7 +19,8 @@
  * 2. Endpoints that take a sales channel or customer id refuse foreign ones.
  * 3. Foreign records can't be opened or changed by id.
  *
- * Exit code 1 on a leak. The check only reads; writes are covered by the
+ * Exit code 1 on a leak, or when a search fails with a server error (the
+ * read filter must never break a search). The check only reads; writes are covered by the
  * unit tests of the write rules.
  */
 
@@ -63,9 +64,26 @@ foreach (array_keys($schema) as $entity) {
         ++$global;
         continue;
     }
+    // A plain search, the plugin's filter alone, must work (a filter through a to-many association
+    // once broke every search of records without an id column, like translations)
+    $translation = isset($schema[$entity]['properties']['translations']) ? $entity . '_translation' : null;
+    foreach (array_filter([$entity, $translation]) as $searched) {
+        [$status, $result] = call($url, 'POST', '/api/search/' . str_replace('_', '-', $searched), $token, ['limit' => 5, 'total-count-mode' => 1, 'includes' => [$searched => ['id']]]);
+        if ($status >= 500 && !in_array($result['errors'][0]['code'] ?? '', ['FRAMEWORK__MAPPING_ENTITY_DEFINITION_CLASSES'], true)) {
+            $report(false, sprintf('%-45s plain search: HTTP %d %s', $searched, $status, errorOf($result)));
+        }
+    }
+    // Translations: also through their record (product_translation.product.…)
+    if ($translation !== null) {
+        $parent = lcfirst(str_replace('_', '', ucwords($entity, '_'))) . '.';
+        foreach ($filters as $path => $filter) {
+            $filters[$translation . '|' . $parent . $path] = prefixed($filter, $parent);
+        }
+    }
     foreach ($filters as $path => $filter) {
-        [$status, $result] = call($url, 'POST', '/api/search/' . str_replace('_', '-', $entity), $token, [
-            'limit' => 1, 'total-count-mode' => 1, 'filter' => [$filter], 'includes' => [$entity => ['id']],
+        [$searched, $path] = str_contains($path, '|') ? explode('|', $path, 2) : [$entity, $path];
+        [$status, $result] = call($url, 'POST', '/api/search/' . str_replace('_', '-', $searched), $token, [
+            'limit' => 1, 'total-count-mode' => 1, 'filter' => [$filter], 'includes' => [$searched => ['id']],
         ]);
         if ($status === 403) {
             ++$forbidden;
@@ -75,12 +93,15 @@ foreach (array_keys($schema) as $entity) {
         $total = $result['total'] ?? null;
         if (in_array($result['errors'][0]['code'] ?? '', ['FRAMEWORK__MAPPING_ENTITY_DEFINITION_CLASSES', 'FRAMEWORK__ACCESSOR_NOT_ALLOWED'], true)) {
             ++$unsearchable; // mapping tables and paths the API can't filter by: not readable this way either
+        } elseif ($status >= 500) {
+            // a search the read filter broke (it must never make a search fail)
+            $report(false, sprintf('%-45s via %s: HTTP %d %s', $searched, $path, $status, errorOf($result)));
         } elseif ($status !== 200) {
-            printf("  ?    %-45s via %s: HTTP %d %s\n", $entity, $path, $status, errorOf($result));
+            printf("  ?    %-45s via %s: HTTP %d %s\n", $searched, $path, $status, errorOf($result));
         } elseif ($total > 0) {
-            isset(ACCEPTED[$entity])
-                ? printf("  note %-45s via %s: %d (%s)\n", $entity, $path, $total, ACCEPTED[$entity])
-                : $report(false, sprintf('%-45s via %s: %d records', $entity, $path, $total));
+            isset(ACCEPTED[$searched])
+                ? printf("  note %-45s via %s: %d (%s)\n", $searched, $path, $total, ACCEPTED[$searched])
+                : $report(false, sprintf('%-45s via %s: %d records', $searched, $path, $total));
         }
     }
 }
@@ -127,7 +148,7 @@ if ($order = getenv('SCOPE_FOREIGN_ORDER')) {
 [$status] = call($url, 'GET', "/api/sales-channel/$foreign", $token);
 $report($status === 404 || $status === 403, "GET    /api/sales-channel/$foreign: HTTP $status");
 
-echo $leaks === 0 ? "\nNo leaks found.\n" : "\n$leaks leak(s) found.\n";
+echo $leaks === 0 ? "\nNo leaks found.\n" : "\n$leaks leak(s) or failed search(es) found.\n";
 exit($leaks === 0 ? 0 : 1);
 
 /**
@@ -197,6 +218,25 @@ function rootFilter(string $entity, string $prefix, string $foreign, array $own)
         ]],
         default => null,
     };
+}
+
+/**
+ * The filter with every field behind a prefix (to search a record's translations through it).
+ *
+ * @param array<string, mixed> $filter
+ *
+ * @return array<string, mixed>
+ */
+function prefixed(array $filter, string $prefix): array
+{
+    if (isset($filter['field'])) {
+        $filter['field'] = $prefix . $filter['field'];
+    }
+    if (isset($filter['queries'])) {
+        $filter['queries'] = array_map(static fn (array $query) => prefixed($query, $prefix), $filter['queries']);
+    }
+
+    return $filter;
 }
 
 function login(string $url, string $user, string $password): string

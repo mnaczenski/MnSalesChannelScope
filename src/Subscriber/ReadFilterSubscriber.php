@@ -14,6 +14,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Field\OneToManyAssociationField
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\AndFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\Filter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Grouping\FieldGrouping;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -63,10 +64,28 @@ class ReadFilterSubscriber implements EventSubscriberInterface
 
         $filter = $this->filter($definition->getEntityName(), $ids);
         if ($filter !== null) {
-            $criteria->addFilter($filter);
+            self::addFilter($criteria, $definition, $filter);
         }
 
         $this->restrictAssociations($criteria, $definition, $ids, 0);
+    }
+
+    /**
+     * When a filter joins a to-many association (a product's visibilities),
+     * Shopware groups the rows by the column `id`. Records without one, like
+     * translations (key: record and language), would fail with "Unknown
+     * column"; they are grouped by their primary key instead.
+     */
+    private static function addFilter(Criteria $criteria, EntityDefinition $definition, Filter $filter): void
+    {
+        $criteria->addFilter($filter);
+
+        if ($criteria->getGroupFields() !== [] || $definition->getFields()->has('id')) {
+            return;
+        }
+        foreach ($definition->getPrimaryKeys() as $field) {
+            $criteria->addGroupField(new FieldGrouping($field->getPropertyName()));
+        }
     }
 
     /**
@@ -116,7 +135,7 @@ class ReadFilterSubscriber implements EventSubscriberInterface
             if ($toMany) {
                 $filter = $this->filter($reference->getEntityName(), $ids);
                 if ($filter !== null) {
-                    $associationCriteria->addFilter($filter);
+                    self::addFilter($associationCriteria, $reference, $filter);
                 }
             }
 

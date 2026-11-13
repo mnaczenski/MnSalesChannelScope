@@ -124,7 +124,10 @@ class StateHistoryGuardSubscriber implements EventSubscriberInterface, WriteRule
             return;
         }
 
-        $field = $filter instanceof EqualsFilter || $filter instanceof EqualsAnyFilter ? $filter->getField() : null;
+        if (!$filter instanceof EqualsFilter && !$filter instanceof EqualsAnyFilter) {
+            return;
+        }
+        $field = $filter->getField();
         if ($field !== 'referencedId' && $field !== self::ENTITY . '.referencedId') {
             return;
         }

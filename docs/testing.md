@@ -81,6 +81,7 @@ php tests/acceptance/leak-check.php
 1. **Entity sweep.** For every entity in the entity schema it follows many-to-one associations (up to four steps) to a sales channel, a customer or a product, and searches for records of the foreign channel. Any hit is a leak, except the few in `ACCEPTED` (visibilities and main categories of shared products). Entities the user has no privilege for are skipped and counted.
 2. **Endpoints** that take a sales channel or customer id: refused for the foreign one.
 3. **Records by id** (the optional `SCOPE_FOREIGN_*` ids): not found; the order's state transitions are not found either.
+4. **Settings:** reads of the broad domains `core` and `storefront` return no keys of hidden domains (credentials and installation-wide settings; the list in the script mirrors `SettingsDomains::shopware()`).
 
 It exits with 1 on a leak and only reads. Because it walks the schema, it also covers entities that a new Shopware release adds, as long as they reach a sales channel through associations. Records that point to another record by id only (like state transitions) need a probe of their own.
 

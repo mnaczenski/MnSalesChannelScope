@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.12.2
+
+Security fixes.
+
+- **Settings:** a limited user with the settings preset could read hidden settings, including the mail server's username and password, the shop id and webhook settings, by requesting a broad domain (`GET /api/_action/system-config?domain=core`); only requests for a hidden domain itself were refused. `SystemConfigGuardSubscriber` now also removes every key of a hidden domain from the response.
+- **Tags:** a limited user could add tags to, and remove them from, orders and customers of other sales channels (`order_tag`, `customer_tag`, through the Sync API or the entity API). Tag assignments now follow their order or customer (`WriteGuardSubscriber`).
+- **Leak check:** new section *Settings*: reads of `core` and `storefront` must not return keys of hidden domains.
+- Documented as known limitations: a limited user given role-management privileges can lift their own limit, and a role whose last sales channel is deleted is no longer limited.
+
 ## 0.12.1
 
 - Fixed: for limited users, product pages in the administration didn't load ("Unknown column 'product_translation.id'"). The read filter of product translations (0.12.0) goes through the product's visibilities; Shopware then groups the rows by an `id` column, which translations don't have. Records without an `id` are now grouped by their primary key.

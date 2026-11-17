@@ -11,6 +11,7 @@ use Shopware\Core\PlatformRequest;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\ControllerEvent;
+use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
@@ -20,7 +21,10 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * restricted user:
  *
  * - reading: only readable domains (ConfigRules), for one of their sales
- *   channels or for all channels (the inherited values the pages show);
+ *   channels or for all channels (the inherited values the pages show).
+ *   The response is filtered too: a broad domain such as "core" would
+ *   otherwise return the keys of hidden domains below it (credentials in
+ *   core.mailerSettings, core.store);
  * - saving: only editable domains, and only for one of their channels.
  */
 class SystemConfigGuardSubscriber implements EventSubscriberInterface
@@ -28,6 +32,9 @@ class SystemConfigGuardSubscriber implements EventSubscriberInterface
     public const READ_ROUTE = 'api.action.core.system-config.value';
     public const SAVE_ROUTE = 'api.action.core.save.system-config';
     public const BATCH_ROUTE = 'api.action.core.save.system-config.batch';
+
+    /** Request attribute: the response of this read holds values a restricted user may not see. */
+    private const FILTER_RESPONSE = 'mn_channel_scope_filter_config';
 
     private readonly ConfigRules $config;
 
@@ -42,6 +49,7 @@ class SystemConfigGuardSubscriber implements EventSubscriberInterface
     {
         return [
             KernelEvents::CONTROLLER => ['onController', KernelListenerPriorities::KERNEL_CONTROLLER_EVENT_SCOPE_VALIDATE_POST],
+            KernelEvents::RESPONSE => 'onResponse',
         ];
     }
 
@@ -71,6 +79,30 @@ class SystemConfigGuardSubscriber implements EventSubscriberInterface
         if ($reason !== null) {
             throw ChannelScopeException::settingsDenied($reason);
         }
+        if ($route === self::READ_ROUTE) {
+            $request->attributes->set(self::FILTER_RESPONSE, true);
+        }
+    }
+
+    /**
+     * Removes every key a restricted user may not read from the values of an allowed read.
+     */
+    public function onResponse(ResponseEvent $event): void
+    {
+        if ($event->getRequest()->attributes->get(self::FILTER_RESPONSE) !== true) {
+            return;
+        }
+        $response = $event->getResponse();
+        $values = json_decode((string) $response->getContent(), true);
+        if ($response->getStatusCode() !== 200 || !\is_array($values)) {
+            return;
+        }
+
+        $readable = array_filter($values, fn (int|string $key): bool => $this->config->isReadable((string) $key), \ARRAY_FILTER_USE_KEY);
+        if (\count($readable) === \count($values)) {
+            return;
+        }
+        $response->setContent($readable === [] ? '{}' : (string) json_encode($readable, \JSON_PRESERVE_ZERO_FRACTION));
     }
 
     /**

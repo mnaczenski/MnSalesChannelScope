@@ -10,7 +10,9 @@ use Mn\SalesChannelScope\Tests\StaticScopeLookup;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Shopware\Core\Checkout\Customer\Aggregate\CustomerAddress\CustomerAddressDefinition;
+use Shopware\Core\Checkout\Customer\Aggregate\CustomerTag\CustomerTagDefinition;
 use Shopware\Core\Checkout\Customer\CustomerDefinition;
+use Shopware\Core\Checkout\Order\Aggregate\OrderTag\OrderTagDefinition;
 use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemDefinition;
 use Shopware\Core\Checkout\Order\OrderDefinition;
 use Shopware\Core\Content\Product\Aggregate\ProductPrice\ProductPriceDefinition;
@@ -115,6 +117,27 @@ class WriteGuardSubscriberTest extends TestCase
         $item = $this->insert($this->definition(OrderLineItemDefinition::class), Uuid::randomHex(), ['order_id' => Uuid::fromHexToBytes($orderId)]);
 
         static::assertSame([], $this->denied([$order, $item]));
+    }
+
+    public function testTagsFollowTheirOrder(): void
+    {
+        $tag = Uuid::randomHex();
+        static::assertSame([], $this->denied([$this->assign(OrderTagDefinition::class, ['order_id' => self::ORDER_DE, 'tag_id' => $tag])]));
+        static::assertSame(['order_tag'], $this->denied([$this->assign(OrderTagDefinition::class, ['order_id' => self::ORDER_EN, 'tag_id' => $tag])]));
+        static::assertSame(['order_tag'], $this->denied([$this->assign(OrderTagDefinition::class, ['order_id' => self::ORDER_EN, 'tag_id' => $tag], delete: true)]), 'removing a tag too');
+
+        $orderId = Uuid::randomHex();
+        $order = $this->insert($this->definition(OrderDefinition::class), $orderId, ['sales_channel_id' => Uuid::fromHexToBytes(Ids::DE)]);
+        static::assertSame([], $this->denied([$order, $this->assign(OrderTagDefinition::class, ['order_id' => $orderId, 'tag_id' => $tag])]), 'a new order with its tags');
+    }
+
+    public function testTagsFollowTheirCustomer(): void
+    {
+        $tag = Uuid::randomHex();
+        static::assertSame([], $this->denied([$this->assign(CustomerTagDefinition::class, ['customer_id' => self::CUSTOMER_DE, 'tag_id' => $tag])]));
+        static::assertSame([], $this->denied([$this->assign(CustomerTagDefinition::class, ['customer_id' => self::CUSTOMER_EN_BOUND_DE, 'tag_id' => $tag])]));
+        static::assertSame(['customer_tag'], $this->denied([$this->assign(CustomerTagDefinition::class, ['customer_id' => self::CUSTOMER_EN, 'tag_id' => $tag])]));
+        static::assertSame(['customer_tag'], $this->denied([$this->assign(CustomerTagDefinition::class, ['customer_id' => self::CUSTOMER_EN, 'tag_id' => $tag], delete: true)]));
     }
 
     public function testCustomersRegisteredOrBoundInTheUsersChannelsCanChange(): void
@@ -369,7 +392,7 @@ class WriteGuardSubscriberTest extends TestCase
         static $registry = null;
         /** @var list<class-string<EntityDefinition>> $definitions Commercial's review summary definition is optional */
         $definitions = [
-            OrderDefinition::class, OrderLineItemDefinition::class, CustomerDefinition::class, CustomerAddressDefinition::class, CustomerRecoveryDefinition::class, SalesChannelDefinition::class, AclRoleSalesChannelDefinition::class, ProductDefinition::class, ProductPriceDefinition::class, ProductVisibilityDefinition::class, ProductReviewDefinition::class, SystemConfigDefinition::class, ProductSortingDefinition::class, LandingPageDefinition::class, LandingPageTranslationDefinition::class, LandingPageSalesChannelDefinition::class, SalesChannelCountryDefinition::class, SalesChannelAnalyticsDefinition::class, RuleDefinition::class, RuleConditionDefinition::class, PaymentMethodDefinition::class,
+            OrderDefinition::class, OrderLineItemDefinition::class, OrderTagDefinition::class, CustomerTagDefinition::class, CustomerDefinition::class, CustomerAddressDefinition::class, CustomerRecoveryDefinition::class, SalesChannelDefinition::class, AclRoleSalesChannelDefinition::class, ProductDefinition::class, ProductPriceDefinition::class, ProductVisibilityDefinition::class, ProductReviewDefinition::class, SystemConfigDefinition::class, ProductSortingDefinition::class, LandingPageDefinition::class, LandingPageTranslationDefinition::class, LandingPageSalesChannelDefinition::class, SalesChannelCountryDefinition::class, SalesChannelAnalyticsDefinition::class, RuleDefinition::class, RuleConditionDefinition::class, PaymentMethodDefinition::class,
             ...(class_exists(ProductReviewSummaryDefinition::class) ? [ProductReviewSummaryDefinition::class] : []),
         ];
         $registry ??= new StaticDefinitionInstanceRegistry(
@@ -395,6 +418,25 @@ class WriteGuardSubscriberTest extends TestCase
     private function update(EntityDefinition $definition, string $id, array $payload): UpdateCommand
     {
         return new UpdateCommand($definition, $payload, $this->key($id), $this->existence($definition->getEntityName(), true), '');
+    }
+
+    /**
+     * An insert or delete of a mapping row (order_tag, customer_tag): its primary key holds both ids.
+     *
+     * @param class-string<EntityDefinition> $class
+     * @param array<string, string>          $ids    column => hex id
+     */
+    private function assign(string $class, array $ids, bool $delete = false): WriteCommand
+    {
+        $definition = $this->definition($class);
+        $key = array_map(static fn (string $id) => Uuid::fromHexToBytes($id), $ids);
+        if (isset($ids['order_id'])) {
+            $key['order_version_id'] = Uuid::fromHexToBytes(Defaults::LIVE_VERSION);
+        }
+
+        return $delete
+            ? new DeleteCommand($definition, $key, $this->existence($definition->getEntityName(), true))
+            : new InsertCommand($definition, $key, $key, $this->existence($definition->getEntityName(), false), '');
     }
 
     private function delete(EntityDefinition $definition, string $id): DeleteCommand

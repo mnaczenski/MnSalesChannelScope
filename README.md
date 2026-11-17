@@ -109,6 +109,8 @@ The most important open points; the full list is in [docs/architecture.md](docs/
 - **Filtering and sorting** by customer or product totals still use Shopware's totals across all channels.
 - **Some screens** offer actions the server refuses (category tree menus, product bulk edit, layout list actions); the change is refused with `MN_CHANNEL_SCOPE__WRITE_DENIED`.
 - **Rules** created by a limited user can't be changed afterwards.
+- **Role management:** a limited user who is given privileges to create roles and assign them (no preset does) can lift their own limit.
+- **Deleting a sales channel** removes it from roles; a role left without channels is no longer limited. Adjust such roles before deleting a channel.
 
 ## Development
 

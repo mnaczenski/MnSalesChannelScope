@@ -18,6 +18,8 @@
  *    any hit is a leak (unless listed in ACCEPTED with the reason).
  * 2. Endpoints that take a sales channel or customer id refuse foreign ones.
  * 3. Foreign records can't be opened or changed by id.
+ * 4. Settings: broad domains ("core", "storefront") return no values of
+ *    hidden domains (credentials, installation-wide settings).
  *
  * Exit code 1 on a leak, or when a search fails with a server error (the
  * read filter must never break a search). The check only reads; writes are covered by the
@@ -30,6 +32,9 @@ const ACCEPTED = [
     // a product's main category per channel, read-only like the product
     'main_category' => 'main categories of shared products',
 ];
+
+// Settings domains a limited user must never read, also inside a readable domain; keep in sync with SettingsDomains::shopware()
+const HIDDEN_SETTINGS = ['core.app', 'core.frw', 'core.logging', 'core.mailerSettings', 'core.mediaAiTag', 'core.services', 'core.store', 'core.update', 'core.usageData', 'core.userPermission', 'core.webhook'];
 
 // Associations the search does not follow: global records, or ones the plugin limits differently (category trees, layouts)
 const NOT_FOLLOWED = ['language', 'currency', 'user', 'integration', 'media', 'state_machine_state', 'country', 'salutation', 'rule', 'payment_method', 'shipping_method', 'tax', 'version', 'category', 'cms_page', 'theme', 'locale', 'unit', 'delivery_time', 'customer_group', 'product_manufacturer', 'property_group_option', 'app', 'acl_role'];
@@ -147,6 +152,24 @@ if ($order = getenv('SCOPE_FOREIGN_ORDER')) {
 }
 [$status] = call($url, 'GET', "/api/sales-channel/$foreign", $token);
 $report($status === 404 || $status === 403, "GET    /api/sales-channel/$foreign: HTTP $status");
+
+// 4. Settings: the values of a broad domain must not include hidden domains
+echo "\nSettings\n";
+foreach (['core', 'storefront'] as $domain) {
+    [$status, $values] = call($url, 'GET', '/api/_action/system-config?domain=' . $domain, $token);
+    $hidden = $status === 200 && is_array($values)
+        ? array_values(array_filter(array_keys($values), static function (int|string $key): bool {
+            foreach (HIDDEN_SETTINGS as $prefix) {
+                if ($key === $prefix || str_starts_with((string) $key, $prefix . '.')) {
+                    return true;
+                }
+            }
+
+            return false;
+        }))
+        : [];
+    $report($hidden === [], sprintf('GET    /api/_action/system-config?domain=%s: HTTP %d%s', $domain, $status, $hidden === [] ? '' : ', hidden keys: ' . implode(', ', array_slice($hidden, 0, 5))));
+}
 
 echo $leaks === 0 ? "\nNo leaks found.\n" : "\n$leaks leak(s) or failed search(es) found.\n";
 exit($leaks === 0 ? 0 : 1);

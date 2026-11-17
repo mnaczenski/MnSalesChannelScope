@@ -187,7 +187,7 @@ Configuration values (`system_config`) exist per sales channel and for all chann
 - **readable:** Shopware's settings (`core.*`) and the storefront's theme bookkeeping, of the user's channels and for all channels (the administration shows those as inherited values), except credentials and installation-wide domains (mailer, store and license, apps, services, updates, usage data, webhooks);
 - **editable:** the pages of the *Sales channel settings* preset (basic information, cart, login and registration, newsletter, sitemap), only for the user's own channels.
 
-The settings API reads and writes with plain SQL, so `SystemConfigGuardSubscriber` checks those routes (refusals: HTTP 403, `MN_CHANNEL_SCOPE__SETTINGS_DENIED`); the read filter and write guard apply the same rules to the entity API.
+The settings API reads and writes with plain SQL, so `SystemConfigGuardSubscriber` checks those routes (refusals: HTTP 403, `MN_CHANNEL_SCOPE__SETTINGS_DENIED`); the read filter and write guard apply the same rules to the entity API. A read of a broad domain (`core`) returns every key below it, so the guard also filters the response: keys of hidden domains are removed before they reach the user.
 
 ## Totals and dashboard
 
@@ -227,6 +227,8 @@ The screens get the scope from `GET /api/_action/mn-channel-scope/me` (`{ restri
 | Category tree actions, product bulk edit, variant generator, list inline edit | not marked read-only; refused on save | mark them in the UI |
 | Category child counts | an expand arrow for categories whose children are all hidden | count visible children |
 | Product cross-selling assigned products | not checked | check through their cross-selling |
+| A limited user given role management (`acl_role:create`, `acl_user_role:create`; no preset grants it) | can create a role without sales channels, assign it to themselves and become unrestricted | refuse role and role-assignment writes for limited users |
+| A role whose last sales channel is deleted | becomes unrestricted (the mapping rows go with the channel, and a role without channels means "all channels"). Shopware refuses to delete channels with orders, so this concerns channels without orders, e.g. before go-live | remove or adjust such roles before deleting the channel |
 | Records with an id to another record but no association (like state transitions) | not found by the [leak check](testing.md#leak-check)'s sweep; each needs its own guard | review new core entities per release |
 | Settings pages beyond the preset (listing, documents, number ranges, plugin configuration) | only for unrestricted users | open them one by one where they are per channel |
 | Filtering and sorting by customer or product totals | uses Shopware's totals across all channels | a per-channel totals table |

@@ -21,10 +21,10 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  * Refuses writes of a restricted admin user that touch records outside
  * their sales channels, before and after the change:
  *
- * - orders and their details: the order's channel must be theirs, and an
- *   order can't move to another channel;
- * - customers and their addresses: registered in or bound to one of their
- *   channels (customers who only ordered there are read-only);
+ * - orders and their details, tags included: the order's channel must be
+ *   theirs, and an order can't move to another channel;
+ * - customers, their addresses and tags: registered in or bound to one of
+ *   their channels (customers who only ordered there are read-only);
  * - sales channels: only their own can be updated, none created or deleted;
  * - the role-to-channel mapping: only unrestricted users change it;
  * - products and their details: only when the product is sold only in their
@@ -335,6 +335,24 @@ class WriteGuardSubscriber implements EventSubscriberInterface
             }
 
             return null;
+        }
+
+        // Tag assignments: the order or customer is part of the primary key, for inserts and deletes alike.
+        if ($entity === 'order_tag') {
+            $orderId = $primaryKey['order_id'] ?? $payload['order_id'] ?? null;
+            $hex = $this->hex($orderId) ?? '';
+            $channel = \array_key_exists($hex, $newOrders)
+                ? $newOrders[$hex]
+                : (\is_string($orderId) ? $this->lookup->orderChannel($orderId, $primaryKey['order_version_id'] ?? $payload['order_version_id'] ?? $this->liveVersion()) : null);
+
+            return $channel !== null && isset($allowed[$channel]) ? null : 'its order belongs to another sales channel';
+        }
+
+        if ($entity === 'customer_tag') {
+            $customerId = $primaryKey['customer_id'] ?? $payload['customer_id'] ?? null;
+            $customer = $newCustomers[$this->hex($customerId) ?? ''] ?? (\is_string($customerId) ? $this->lookup->customerChannels($customerId) : null);
+
+            return $this->ownsCustomer($customer, $allowed) ? null : 'its customer is registered in another sales channel';
         }
 
         if ($entity === 'customer') {
